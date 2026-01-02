@@ -105,11 +105,7 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
       )
     : "";
 
-  const whatsappSimpleHref = `https://wa.me/${phone}`;
-  const whatsappComplexHref = isFormValid
-    ? `${whatsappSimpleHref}?text=${whatsappMessage}`
-    : whatsappSimpleHref;
-  const whatsappApiHref = isFormValid
+  const whatsappHref = isFormValid
     ? `https://api.whatsapp.com/send?phone=${phone}&text=${whatsappMessage}`
     : `https://api.whatsapp.com/send?phone=${phone}`;
 
@@ -256,44 +252,18 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
 
         {/* WhatsApp Button */}
         {isFormValid ? (
-          <div className="mt-6 space-y-3">
-            <a
-              href={whatsappComplexHref}
-              target={linkTarget}
-              rel="noopener noreferrer"
-              onClick={handleTrackClick}
-              className="btn-whatsapp w-full inline-flex items-center justify-center gap-2"
-            >
-              <MessageCircle className="h-5 w-5" />
-              Verificar Disponibilidade no WhatsApp
-            </a>
-
-            <div className="text-xs text-muted-foreground text-center">
-              Teste:{" "}
-              <a
-                href={whatsappSimpleHref}
-                target={linkTarget}
-                rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                link simples
-              </a>
-              {" • "}
-              <a
-                href={whatsappApiHref}
-                target={linkTarget}
-                rel="noopener noreferrer"
-                className="underline underline-offset-4 hover:text-foreground"
-              >
-                link complexo
-              </a>
-            </div>
-          </div>
-        ) : (
-          <Button
-            disabled
-            className="btn-whatsapp w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          <a
+            href={whatsappHref}
+            target={linkTarget}
+            rel="noopener noreferrer"
+            onClick={handleTrackClick}
+            className="w-full mt-6 inline-flex items-center justify-center gap-2 bg-[#25D366] hover:bg-[#128C7E] text-white font-medium py-3 px-4 rounded-lg transition-colors"
           >
+            <MessageCircle className="h-5 w-5" />
+            Verificar Disponibilidade no WhatsApp
+          </a>
+        ) : (
+          <Button disabled className="w-full mt-6">
             <MessageCircle className="h-5 w-5" />
             Verificar Disponibilidade no WhatsApp
           </Button>
