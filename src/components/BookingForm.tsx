@@ -97,15 +97,13 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
     const roomLabel = roomTypes[roomType as keyof typeof roomTypes].label;
 
     const message = encodeURIComponent(
-      `Olá! 👋
+      `Ola! Gostaria de verificar disponibilidade:
 
-Gostaria de verificar disponibilidade:
-
-📅 Check-in: ${checkInFormatted}
-📅 Check-out: ${checkOutFormatted}
-🌙 ${nights} noite${nights > 1 ? "s" : ""}
-🛏️ ${roomLabel}
-👥 ${guests} hóspede${parseInt(guests) > 1 ? "s" : ""}
+- Check-in: ${checkInFormatted}
+- Check-out: ${checkOutFormatted}
+- ${nights} noite${nights > 1 ? "s" : ""}
+- ${roomLabel}
+- ${guests} hospede${parseInt(guests) > 1 ? "s" : ""}
 
 Vi no site oficial. Aguardo retorno!`
     );
