@@ -114,32 +114,47 @@ export type Database = {
       }
       linktree_settings: {
         Row: {
+          animation_style: string | null
           background_color: string | null
           background_image_url: string | null
           button_style: string | null
           created_at: string
           id: string
+          logo_url: string | null
           primary_color: string | null
+          profile_description: string | null
+          profile_title: string | null
+          shadow_style: string | null
           text_color: string | null
           updated_at: string
         }
         Insert: {
+          animation_style?: string | null
           background_color?: string | null
           background_image_url?: string | null
           button_style?: string | null
           created_at?: string
           id?: string
+          logo_url?: string | null
           primary_color?: string | null
+          profile_description?: string | null
+          profile_title?: string | null
+          shadow_style?: string | null
           text_color?: string | null
           updated_at?: string
         }
         Update: {
+          animation_style?: string | null
           background_color?: string | null
           background_image_url?: string | null
           button_style?: string | null
           created_at?: string
           id?: string
+          logo_url?: string | null
           primary_color?: string | null
+          profile_description?: string | null
+          profile_title?: string | null
+          shadow_style?: string | null
           text_color?: string | null
           updated_at?: string
         }
