@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar, Users, MessageCircle, BedDouble } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,9 +36,35 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [roomType, setRoomType] = useState<string>("double");
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [whatsappUrl, setWhatsappUrl] = useState<string>("");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // Generate WhatsApp URL when form data changes
+  useEffect(() => {
+    if (checkIn && checkOut) {
+      const checkInFormatted = format(checkIn, "dd/MM/yyyy", { locale: ptBR });
+      const checkOutFormatted = format(checkOut, "dd/MM/yyyy", { locale: ptBR });
+      const nightsCount = differenceInDays(checkOut, checkIn);
+      const roomLabel = roomTypes[roomType as keyof typeof roomTypes].label;
+
+      const message = encodeURIComponent(
+        `Ola! Gostaria de verificar disponibilidade:
+
+- Check-in: ${checkInFormatted}
+- Check-out: ${checkOutFormatted}
+- ${nightsCount} noite${nightsCount > 1 ? "s" : ""}
+- ${roomLabel}
+- ${guests} hospede${parseInt(guests) > 1 ? "s" : ""}
+
+Vi no site oficial. Aguardo retorno!`
+      );
+
+      const phone = "5581984446199";
+      setWhatsappUrl(`https://api.whatsapp.com/send?phone=${phone}&text=${message}`);
+    }
+  }, [checkIn, checkOut, guests, roomType]);
 
   const handleCheckInSelect = (date: Date | undefined) => {
     setCheckIn(date);
@@ -67,10 +93,8 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
     }
   };
 
-  const handleWhatsAppClick = async () => {
-    if (!checkIn || !checkOut) {
-      return;
-    }
+  const handleTrackClick = async () => {
+    if (!checkIn || !checkOut) return;
 
     const urlParams = new URLSearchParams(window.location.search);
     const utmSource = urlParams.get("utm_source") || null;
@@ -90,31 +114,6 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
     if (onBookingAttempt) {
       onBookingAttempt({ checkIn, checkOut, guests: parseInt(guests) });
     }
-
-    const checkInFormatted = format(checkIn, "dd/MM/yyyy", { locale: ptBR });
-    const checkOutFormatted = format(checkOut, "dd/MM/yyyy", { locale: ptBR });
-    const nights = differenceInDays(checkOut, checkIn);
-    const roomLabel = roomTypes[roomType as keyof typeof roomTypes].label;
-
-    const message = encodeURIComponent(
-      `Ola! Gostaria de verificar disponibilidade:
-
-- Check-in: ${checkInFormatted}
-- Check-out: ${checkOutFormatted}
-- ${nights} noite${nights > 1 ? "s" : ""}
-- ${roomLabel}
-- ${guests} hospede${parseInt(guests) > 1 ? "s" : ""}
-
-Vi no site oficial. Aguardo retorno!`
-    );
-
-    const phone = "5581984446199";
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const whatsappUrl = isMobile
-      ? `https://wa.me/${phone}?text=${message}`
-      : `https://web.whatsapp.com/send?phone=${phone}&text=${message}`;
-
-    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   const isFormValid = checkIn && checkOut;
@@ -260,14 +259,26 @@ Vi no site oficial. Aguardo retorno!`
         )}
 
         {/* WhatsApp Button */}
-        <Button
-          onClick={handleWhatsAppClick}
-          disabled={!isFormValid}
-          className="btn-whatsapp w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          <MessageCircle className="h-5 w-5" />
-          Verificar Disponibilidade no WhatsApp
-        </Button>
+        {isFormValid ? (
+          <a
+            href={whatsappUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={handleTrackClick}
+            className="btn-whatsapp w-full mt-6 inline-flex items-center justify-center gap-2"
+          >
+            <MessageCircle className="h-5 w-5" />
+            Verificar Disponibilidade no WhatsApp
+          </a>
+        ) : (
+          <Button
+            disabled
+            className="btn-whatsapp w-full mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            <MessageCircle className="h-5 w-5" />
+            Verificar Disponibilidade no WhatsApp
+          </Button>
+        )}
       </div>
     </div>
   );
