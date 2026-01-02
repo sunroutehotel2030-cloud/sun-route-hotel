@@ -2,22 +2,9 @@ import { useState, useEffect } from "react";
 import {
   Link2,
   Plus,
-  Trash2,
-  Edit,
   ExternalLink,
-  Eye,
-  EyeOff,
-  GripVertical,
   BarChart3,
   MousePointerClick,
-  TrendingUp,
-  Instagram,
-  Globe,
-  Mail,
-  Phone,
-  MapPin,
-  Calendar,
-  Star,
   Save,
   X,
   Loader2,
@@ -27,10 +14,12 @@ import {
   Upload,
   Check,
   Download,
+  Smartphone,
 } from "lucide-react";
 import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Card,
   CardContent,
@@ -63,7 +52,10 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import LinktreeLinkItem from "./LinktreeLinkItem";
+import LinktreeIconPicker from "./LinktreeIconPicker";
+import LinktreeProfileEditor from "./LinktreeProfileEditor";
+import LinktreePreview from "./LinktreePreview";
 
 interface LinktreeLink {
   id: string;
@@ -83,23 +75,17 @@ interface LinktreeSettings {
   text_color: string;
   button_style: string;
   background_image_url: string | null;
+  logo_url: string | null;
+  profile_title: string;
+  profile_description: string | null;
+  shadow_style: string;
+  animation_style: string;
 }
 
 interface DailyClick {
   day: string;
   clicks: number;
 }
-
-const iconOptions = [
-  { value: "link", label: "Link", icon: Link2 },
-  { value: "instagram", label: "Instagram", icon: Instagram },
-  { value: "globe", label: "Website", icon: Globe },
-  { value: "mail", label: "Email", icon: Mail },
-  { value: "phone", label: "Telefone", icon: Phone },
-  { value: "location", label: "Localização", icon: MapPin },
-  { value: "calendar", label: "Agenda", icon: Calendar },
-  { value: "star", label: "Destaque", icon: Star },
-];
 
 const COLORS = ["hsl(35, 55%, 52%)", "hsl(35, 45%, 62%)", "hsl(35, 35%, 72%)", "hsl(35, 25%, 82%)"];
 
@@ -111,6 +97,11 @@ const LinktreeManager = () => {
   const [totalClicks, setTotalClicks] = useState(0);
   const [todayClicks, setTodayClicks] = useState(0);
   const [copied, setCopied] = useState(false);
+  const [showPreview, setShowPreview] = useState(true);
+
+  // Drag state
+  const [draggingIndex, setDraggingIndex] = useState<number | null>(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
 
   // Form state
   const [isDialogOpen, setIsDialogOpen] = useState(false);
@@ -126,6 +117,11 @@ const LinktreeManager = () => {
   const [primaryColor, setPrimaryColor] = useState("#b8860b");
   const [textColor, setTextColor] = useState("#1a1a1a");
   const [buttonStyle, setButtonStyle] = useState("rounded");
+  const [shadowStyle, setShadowStyle] = useState("medium");
+  const [animationStyle, setAnimationStyle] = useState("fade");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [profileTitle, setProfileTitle] = useState("Meu Linktree");
+  const [profileDescription, setProfileDescription] = useState("");
   const [uploadingImage, setUploadingImage] = useState(false);
   const [savingSettings, setSavingSettings] = useState(false);
 
@@ -155,11 +151,16 @@ const LinktreeManager = () => {
         .single();
 
       if (!settingsError && settingsData) {
-        setSettings(settingsData);
+        setSettings(settingsData as LinktreeSettings);
         setBgColor(settingsData.background_color || "#f5f0e8");
         setPrimaryColor(settingsData.primary_color || "#b8860b");
         setTextColor(settingsData.text_color || "#1a1a1a");
         setButtonStyle(settingsData.button_style || "rounded");
+        setShadowStyle(settingsData.shadow_style || "medium");
+        setAnimationStyle(settingsData.animation_style || "fade");
+        setLogoUrl(settingsData.logo_url || null);
+        setProfileTitle(settingsData.profile_title || "Meu Linktree");
+        setProfileDescription(settingsData.profile_description || "");
       }
 
       // Calculate total clicks
@@ -274,7 +275,7 @@ const LinktreeManager = () => {
         });
       } else {
         const maxPosition = Math.max(0, ...links.map((l) => l.position));
-        
+
         const { error } = await supabase.from("linktree_links").insert({
           title: formTitle.trim(),
           url: formUrl.trim(),
@@ -348,30 +349,53 @@ const LinktreeManager = () => {
     }
   };
 
-  const moveLink = async (index: number, direction: "up" | "down") => {
-    const newIndex = direction === "up" ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= links.length) return;
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, index: number) => {
+    setDraggingIndex(index);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  const handleDragOver = (e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    if (draggingIndex !== null && draggingIndex !== index) {
+      setDragOverIndex(index);
+    }
+  };
+
+  const handleDragEnd = async () => {
+    if (draggingIndex === null || dragOverIndex === null || draggingIndex === dragOverIndex) {
+      setDraggingIndex(null);
+      setDragOverIndex(null);
+      return;
+    }
 
     const newLinks = [...links];
-    const temp = newLinks[index];
-    newLinks[index] = newLinks[newIndex];
-    newLinks[newIndex] = temp;
+    const [draggedItem] = newLinks.splice(draggingIndex, 1);
+    newLinks.splice(dragOverIndex, 0, draggedItem);
 
+    // Update positions locally first for immediate feedback
+    setLinks(newLinks);
+    setDraggingIndex(null);
+    setDragOverIndex(null);
+
+    // Update positions in database
     try {
-      await Promise.all([
-        supabase
-          .from("linktree_links")
-          .update({ position: newIndex })
-          .eq("id", temp.id),
-        supabase
-          .from("linktree_links")
-          .update({ position: index })
-          .eq("id", newLinks[index].id),
-      ]);
+      await Promise.all(
+        newLinks.map((link, index) =>
+          supabase
+            .from("linktree_links")
+            .update({ position: index })
+            .eq("id", link.id)
+        )
+      );
 
-      fetchData();
+      toast({
+        title: "Ordem atualizada",
+        description: "A ordem dos links foi alterada.",
+      });
     } catch (error) {
       console.error("Error reordering links:", error);
+      fetchData(); // Revert on error
     }
   };
 
@@ -464,6 +488,11 @@ const LinktreeManager = () => {
           primary_color: primaryColor,
           text_color: textColor,
           button_style: buttonStyle,
+          shadow_style: shadowStyle,
+          animation_style: animationStyle,
+          logo_url: logoUrl,
+          profile_title: profileTitle,
+          profile_description: profileDescription || null,
           updated_at: new Date().toISOString(),
         })
         .eq("id", settings.id);
@@ -476,6 +505,11 @@ const LinktreeManager = () => {
         primary_color: primaryColor,
         text_color: textColor,
         button_style: buttonStyle,
+        shadow_style: shadowStyle,
+        animation_style: animationStyle,
+        logo_url: logoUrl,
+        profile_title: profileTitle,
+        profile_description: profileDescription,
       });
 
       toast({
@@ -494,11 +528,6 @@ const LinktreeManager = () => {
     }
   };
 
-  const getIconComponent = (iconName: string) => {
-    const option = iconOptions.find((o) => o.value === iconName);
-    return option?.icon || Link2;
-  };
-
   const pieData = links
     .filter((l) => l.clicks > 0)
     .slice(0, 4)
@@ -506,6 +535,20 @@ const LinktreeManager = () => {
       name: link.title,
       value: link.clicks,
     }));
+
+  // Build preview settings object
+  const previewSettings = {
+    background_color: bgColor,
+    primary_color: primaryColor,
+    text_color: textColor,
+    button_style: buttonStyle,
+    background_image_url: settings?.background_image_url || null,
+    logo_url: logoUrl,
+    profile_title: profileTitle,
+    profile_description: profileDescription,
+    shadow_style: shadowStyle,
+    animation_style: animationStyle,
+  };
 
   if (loading) {
     return (
@@ -516,664 +559,517 @@ const LinktreeManager = () => {
   }
 
   return (
-    <Tabs defaultValue="links" className="space-y-6">
-      <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
-        <TabsTrigger value="links" className="gap-2">
-          <Link2 className="h-4 w-4" />
-          Links
-        </TabsTrigger>
-        <TabsTrigger value="analytics" className="gap-2">
-          <BarChart3 className="h-4 w-4" />
-          Métricas
-        </TabsTrigger>
-        <TabsTrigger value="customize" className="gap-2">
-          <Palette className="h-4 w-4" />
-          Personalizar
-        </TabsTrigger>
-      </TabsList>
+    <div className="flex gap-6">
+      {/* Main Content */}
+      <div className="flex-1 min-w-0">
+        <Tabs defaultValue="links" className="space-y-6">
+          <div className="flex items-center justify-between">
+            <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+              <TabsTrigger value="links" className="gap-2">
+                <Link2 className="h-4 w-4" />
+                Links
+              </TabsTrigger>
+              <TabsTrigger value="analytics" className="gap-2">
+                <BarChart3 className="h-4 w-4" />
+                Métricas
+              </TabsTrigger>
+              <TabsTrigger value="customize" className="gap-2">
+                <Palette className="h-4 w-4" />
+                Personalizar
+              </TabsTrigger>
+            </TabsList>
 
-      <TabsContent value="links" className="space-y-6">
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <ExternalLink className="h-4 w-4" />
-                Link da Página
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2">
-                <Input value={linktreeUrl} readOnly className="text-sm" />
-                <Button size="icon" variant="outline" onClick={copyLink}>
-                  {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-              <a
-                href="/links"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-xs text-primary hover:underline mt-2 inline-block"
-              >
-                Abrir página →
-              </a>
-            </CardContent>
-          </Card>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-2 lg:hidden"
+              onClick={() => setShowPreview(!showPreview)}
+            >
+              <Smartphone className="h-4 w-4" />
+              Preview
+            </Button>
+          </div>
 
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <QrCode className="h-4 w-4" />
-                QR Code
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="flex items-center justify-center">
-              <Dialog>
-                <DialogTrigger asChild>
-                  <div className="cursor-pointer hover:opacity-80 transition-opacity hover:scale-105">
-                    <QRCodeSVG value={linktreeUrl} size={80} />
+          <TabsContent value="links" className="space-y-6">
+            {/* Public Link Card */}
+            <Card className="border-primary/20 bg-primary/5">
+              <CardContent className="pt-6">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium text-muted-foreground mb-1">Seu link público</p>
+                    <div className="flex items-center gap-2">
+                      <Input value={linktreeUrl} readOnly className="bg-background font-mono text-sm" />
+                      <Button size="icon" variant="outline" onClick={copyLink} className="shrink-0">
+                        {copied ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                    </div>
                   </div>
-                </DialogTrigger>
-                <DialogContent className="sm:max-w-md">
-                  <DialogHeader>
-                    <DialogTitle>QR Code do Linktree</DialogTitle>
-                    <DialogDescription>
-                      Escaneie para acessar sua página de links
-                    </DialogDescription>
-                  </DialogHeader>
-                  <div className="flex flex-col items-center gap-4 py-4">
-                    <div className="bg-white p-4 rounded-xl">
-                      <QRCodeCanvas 
-                        id="qr-code-canvas"
-                        value={linktreeUrl} 
-                        size={250} 
-                        level="H"
-                        includeMargin={true}
+                  <div className="flex items-center gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button variant="outline" size="sm" className="gap-2">
+                          <QrCode className="h-4 w-4" />
+                          QR Code
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>QR Code do Linktree</DialogTitle>
+                          <DialogDescription>
+                            Escaneie para acessar sua página de links
+                          </DialogDescription>
+                        </DialogHeader>
+                        <div className="flex flex-col items-center gap-4 py-4">
+                          <div className="bg-white p-4 rounded-xl shadow-inner">
+                            <QRCodeCanvas
+                              id="qr-code-canvas"
+                              value={linktreeUrl}
+                              size={250}
+                              level="H"
+                              includeMargin={true}
+                            />
+                          </div>
+                          <p className="text-sm text-muted-foreground text-center font-mono">{linktreeUrl}</p>
+                          <div className="flex gap-2">
+                            <Button onClick={copyLink} variant="outline" className="gap-2">
+                              {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                              Copiar Link
+                            </Button>
+                            <Button
+                              onClick={() => {
+                                const canvas = document.getElementById("qr-code-canvas") as HTMLCanvasElement;
+                                if (canvas) {
+                                  const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                                  const downloadLink = document.createElement("a");
+                                  downloadLink.href = pngUrl;
+                                  downloadLink.download = "linktree-qrcode.png";
+                                  document.body.appendChild(downloadLink);
+                                  downloadLink.click();
+                                  document.body.removeChild(downloadLink);
+                                  toast({
+                                    title: "QR Code baixado!",
+                                    description: "A imagem foi salva no seu dispositivo.",
+                                  });
+                                }
+                              }}
+                              className="gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              Baixar PNG
+                            </Button>
+                          </div>
+                        </div>
+                      </DialogContent>
+                    </Dialog>
+                    <Button size="sm" className="gap-2" asChild>
+                      <a href="/links" target="_blank" rel="noopener noreferrer">
+                        <ExternalLink className="h-4 w-4" />
+                        Abrir página
+                      </a>
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Stats Row */}
+            <div className="grid grid-cols-3 gap-4">
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary">{links.filter((l) => l.is_active).length}</p>
+                    <p className="text-xs text-muted-foreground">Links ativos</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary">{todayClicks}</p>
+                    <p className="text-xs text-muted-foreground">Cliques hoje</p>
+                  </div>
+                </CardContent>
+              </Card>
+              <Card>
+                <CardContent className="pt-4 pb-4">
+                  <div className="text-center">
+                    <p className="text-2xl font-bold text-primary">{totalClicks}</p>
+                    <p className="text-xs text-muted-foreground">Total de cliques</p>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Links Management */}
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between pb-4">
+                <div>
+                  <CardTitle className="text-lg">Gerenciar Links</CardTitle>
+                  <CardDescription>Arraste para reordenar</CardDescription>
+                </div>
+                <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button onClick={resetForm} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      Novo Link
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>{editingLink ? "Editar Link" : "Novo Link"}</DialogTitle>
+                      <DialogDescription>
+                        {editingLink ? "Atualize as informações do link" : "Adicione um novo link"}
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4 mt-4">
+                      <div className="space-y-2">
+                        <Label>Título</Label>
+                        <Input
+                          placeholder="Ex: Nosso Instagram"
+                          value={formTitle}
+                          onChange={(e) => setFormTitle(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>URL</Label>
+                        <Input
+                          placeholder="https://instagram.com/sunroutehotel"
+                          value={formUrl}
+                          onChange={(e) => setFormUrl(e.target.value)}
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Ícone</Label>
+                        <LinktreeIconPicker value={formIcon} onChange={setFormIcon} />
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          id="active"
+                          checked={formActive}
+                          onChange={(e) => setFormActive(e.target.checked)}
+                          className="rounded border-border"
+                        />
+                        <Label htmlFor="active" className="cursor-pointer">
+                          Link ativo
+                        </Label>
+                      </div>
+                      <div className="flex gap-2 pt-4">
+                        <Button
+                          variant="outline"
+                          onClick={() => setIsDialogOpen(false)}
+                          className="flex-1 gap-2"
+                        >
+                          <X className="h-4 w-4" />
+                          Cancelar
+                        </Button>
+                        <Button onClick={handleSave} disabled={isSaving} className="flex-1 gap-2">
+                          {isSaving ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="h-4 w-4" />
+                          )}
+                          Salvar
+                        </Button>
+                      </div>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-2">
+                  {links.length === 0 ? (
+                    <div className="text-center py-12 text-muted-foreground">
+                      <Link2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                      <p>Nenhum link cadastrado</p>
+                      <p className="text-sm">Clique em "Novo Link" para começar</p>
+                    </div>
+                  ) : (
+                    links.map((link, index) => (
+                      <LinktreeLinkItem
+                        key={link.id}
+                        link={link}
+                        index={index}
+                        onEdit={openEditDialog}
+                        onDelete={handleDelete}
+                        onToggleActive={toggleActive}
+                        onDragStart={handleDragStart}
+                        onDragOver={handleDragOver}
+                        onDragEnd={handleDragEnd}
+                        isDragging={draggingIndex === index}
+                        dragOverIndex={dragOverIndex}
+                      />
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics" className="space-y-6">
+            <div className="grid gap-6 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <BarChart3 className="h-5 w-5" />
+                    Cliques por Dia
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={250}>
+                    <BarChart data={dailyClicks}>
+                      <XAxis dataKey="day" tick={{ fontSize: 12 }} />
+                      <YAxis tick={{ fontSize: 12 }} />
+                      <Tooltip
+                        contentStyle={{
+                          backgroundColor: "hsl(var(--card))",
+                          border: "1px solid hsl(var(--border))",
+                          borderRadius: "8px",
+                        }}
+                      />
+                      <Bar dataKey="clicks" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-lg">
+                    <MousePointerClick className="h-5 w-5" />
+                    Links Mais Clicados
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {pieData.length > 0 ? (
+                    <ResponsiveContainer width="100%" height={250}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={100}
+                          dataKey="value"
+                          label={({ name }) => name}
+                        >
+                          {pieData.map((_, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  ) : (
+                    <div className="h-[250px] flex items-center justify-center text-muted-foreground">
+                      Sem dados de cliques ainda
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Ranking de Links</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {links
+                    .sort((a, b) => b.clicks - a.clicks)
+                    .map((link, index) => (
+                      <div key={link.id} className="flex items-center gap-3 p-3 rounded-lg bg-muted/50">
+                        <span className="w-6 h-6 rounded-full bg-primary/10 text-primary text-sm font-bold flex items-center justify-center">
+                          {index + 1}
+                        </span>
+                        <span className="flex-1 font-medium truncate">{link.title}</span>
+                        <span className="text-sm text-muted-foreground">{link.clicks} cliques</span>
+                      </div>
+                    ))}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="customize" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Perfil</CardTitle>
+                <CardDescription>Personalize seu perfil e logomarca</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <LinktreeProfileEditor
+                  logoUrl={logoUrl}
+                  profileTitle={profileTitle}
+                  profileDescription={profileDescription}
+                  primaryColor={primaryColor}
+                  onLogoChange={setLogoUrl}
+                  onTitleChange={setProfileTitle}
+                  onDescriptionChange={setProfileDescription}
+                />
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Cores</CardTitle>
+                <CardDescription>Escolha as cores do seu Linktree</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="space-y-2">
+                    <Label>Cor de Fundo</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={bgColor}
+                        onChange={(e) => setBgColor(e.target.value)}
+                        className="w-12 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={bgColor}
+                        onChange={(e) => setBgColor(e.target.value)}
+                        className="flex-1 font-mono text-sm"
                       />
                     </div>
-                    <p className="text-sm text-muted-foreground text-center">{linktreeUrl}</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Cor Principal</Label>
                     <div className="flex gap-2">
-                      <Button onClick={copyLink} variant="outline" className="gap-2">
-                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                        Copiar Link
-                      </Button>
-                      <Button 
-                        onClick={() => {
-                          const canvas = document.getElementById("qr-code-canvas") as HTMLCanvasElement;
-                          if (canvas) {
-                            const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
-                            const downloadLink = document.createElement("a");
-                            downloadLink.href = pngUrl;
-                            downloadLink.download = "linktree-qrcode.png";
-                            document.body.appendChild(downloadLink);
-                            downloadLink.click();
-                            document.body.removeChild(downloadLink);
-                            toast({
-                              title: "QR Code baixado!",
-                              description: "A imagem foi salva no seu dispositivo.",
-                            });
-                          }
-                        }} 
-                        className="gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        Baixar PNG
-                      </Button>
+                      <Input
+                        type="color"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="w-12 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={primaryColor}
+                        onChange={(e) => setPrimaryColor(e.target.value)}
+                        className="flex-1 font-mono text-sm"
+                      />
                     </div>
                   </div>
-                </DialogContent>
-              </Dialog>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
-                <MousePointerClick className="h-4 w-4" />
-                Estatísticas
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-1">
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Links ativos</span>
-                  <span className="font-bold">{links.filter((l) => l.is_active).length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Cliques hoje</span>
-                  <span className="font-bold">{todayClicks}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-muted-foreground">Total de cliques</span>
-                  <span className="font-bold">{totalClicks}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Links Management */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle className="flex items-center gap-2">
-                <Link2 className="h-5 w-5" />
-                Gerenciar Links
-              </CardTitle>
-              <CardDescription>Crie e organize seus links</CardDescription>
-            </div>
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-              <DialogTrigger asChild>
-                <Button onClick={resetForm} className="gap-2">
-                  <Plus className="h-4 w-4" />
-                  Novo Link
-                </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>{editingLink ? "Editar Link" : "Novo Link"}</DialogTitle>
-                  <DialogDescription>
-                    {editingLink ? "Atualize as informações do link" : "Adicione um novo link"}
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="space-y-4 mt-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Título</label>
-                    <Input
-                      placeholder="Ex: Nosso Instagram"
-                      value={formTitle}
-                      onChange={(e) => setFormTitle(e.target.value)}
-                    />
+                    <Label>Cor do Texto</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        type="color"
+                        value={textColor}
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="w-12 h-10 p-1 cursor-pointer"
+                      />
+                      <Input
+                        type="text"
+                        value={textColor}
+                        onChange={(e) => setTextColor(e.target.value)}
+                        className="flex-1 font-mono text-sm"
+                      />
+                    </div>
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Estilo dos Botões</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">URL</label>
-                    <Input
-                      placeholder="https://instagram.com/sunroutehotel"
-                      value={formUrl}
-                      onChange={(e) => setFormUrl(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium text-foreground">Ícone</label>
-                    <Select value={formIcon} onValueChange={setFormIcon}>
+                    <Label>Formato</Label>
+                    <Select value={buttonStyle} onValueChange={setButtonStyle}>
                       <SelectTrigger>
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
-                        {iconOptions.map((option) => (
-                          <SelectItem key={option.value} value={option.value}>
-                            <div className="flex items-center gap-2">
-                              <option.icon className="h-4 w-4" />
-                              {option.label}
-                            </div>
-                          </SelectItem>
-                        ))}
+                        <SelectItem value="rounded">Arredondado</SelectItem>
+                        <SelectItem value="pill">Pílula</SelectItem>
+                        <SelectItem value="square">Quadrado</SelectItem>
                       </SelectContent>
                     </Select>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      id="active"
-                      checked={formActive}
-                      onChange={(e) => setFormActive(e.target.checked)}
-                      className="rounded border-border"
-                    />
-                    <label htmlFor="active" className="text-sm text-foreground">
-                      Link ativo
-                    </label>
+                  <div className="space-y-2">
+                    <Label>Sombra</Label>
+                    <Select value={shadowStyle} onValueChange={setShadowStyle}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="none">Sem sombra</SelectItem>
+                        <SelectItem value="light">Leve</SelectItem>
+                        <SelectItem value="medium">Média</SelectItem>
+                        <SelectItem value="heavy">Forte</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
-                  <div className="flex gap-2 pt-4">
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-lg">Imagem de Fundo</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {settings?.background_image_url ? (
+                  <div className="relative">
+                    <img
+                      src={settings.background_image_url}
+                      alt="Fundo atual"
+                      className="w-full h-32 object-cover rounded-lg"
+                    />
                     <Button
-                      variant="outline"
-                      onClick={() => setIsDialogOpen(false)}
-                      className="flex-1 gap-2"
+                      variant="destructive"
+                      size="sm"
+                      className="absolute top-2 right-2 gap-2"
+                      onClick={removeBackgroundImage}
                     >
                       <X className="h-4 w-4" />
-                      Cancelar
-                    </Button>
-                    <Button onClick={handleSave} disabled={isSaving} className="flex-1 gap-2">
-                      {isSaving ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Save className="h-4 w-4" />
-                      )}
-                      Salvar
+                      Remover
                     </Button>
                   </div>
-                </div>
-              </DialogContent>
-            </Dialog>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-3">
-              {links.map((link, index) => {
-                const IconComponent = getIconComponent(link.icon);
-                return (
-                  <div
-                    key={link.id}
-                    className={`flex items-center gap-3 p-4 rounded-lg border ${
-                      link.is_active ? "bg-card border-border" : "bg-muted/50 border-muted opacity-60"
-                    }`}
-                  >
-                    <div className="flex flex-col gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => moveLink(index, "up")}
-                        disabled={index === 0}
-                      >
-                        <GripVertical className="h-4 w-4 rotate-90" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-6 w-6"
-                        onClick={() => moveLink(index, "down")}
-                        disabled={index === links.length - 1}
-                      >
-                        <GripVertical className="h-4 w-4 -rotate-90" />
-                      </Button>
-                    </div>
-
-                    <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <IconComponent className="h-5 w-5 text-primary" />
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-foreground truncate">{link.title}</p>
-                      <p className="text-sm text-muted-foreground truncate">{link.url}</p>
-                    </div>
-
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <MousePointerClick className="h-4 w-4" />
-                      <span className="font-medium text-foreground">{link.clicks}</span>
-                    </div>
-
-                    <div className="flex items-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => toggleActive(link)}
-                        title={link.is_active ? "Desativar" : "Ativar"}
-                      >
-                        {link.is_active ? (
-                          <Eye className="h-4 w-4 text-green-600" />
-                        ) : (
-                          <EyeOff className="h-4 w-4 text-muted-foreground" />
-                        )}
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEditDialog(link)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(link.id)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </div>
-                );
-              })}
-
-              {links.length === 0 && (
-                <div className="text-center py-12 text-muted-foreground">
-                  <Link2 className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p>Nenhum link cadastrado</p>
-                  <p className="text-sm">Clique em "Novo Link" para começar</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="analytics" className="space-y-6">
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Links
-              </CardTitle>
-              <Link2 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{links.length}</div>
-              <p className="text-xs text-muted-foreground">{links.filter((l) => l.is_active).length} ativos</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Cliques Hoje
-              </CardTitle>
-              <MousePointerClick className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{todayClicks}</div>
-              <p className="text-xs text-muted-foreground">nas últimas 24h</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Total de Cliques
-              </CardTitle>
-              <TrendingUp className="h-4 w-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">{totalClicks}</div>
-              <p className="text-xs text-muted-foreground">desde o início</p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
-                Taxa Média
-              </CardTitle>
-              <BarChart3 className="h-4 w-4 text-muted-foreground" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-2xl font-bold text-foreground">
-                {links.length > 0 ? Math.round(totalClicks / links.length) : 0}
-              </div>
-              <p className="text-xs text-muted-foreground">cliques por link</p>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Charts */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Cliques por Dia</CardTitle>
-              <CardDescription>Últimos 7 dias</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={dailyClicks}>
-                    <XAxis dataKey="day" />
-                    <YAxis />
-                    <Tooltip />
-                    <Bar dataKey="clicks" fill="hsl(35 55% 52%)" radius={[4, 4, 0, 0]} />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>Links Mais Clicados</CardTitle>
-              <CardDescription>Distribuição de cliques</CardDescription>
-            </CardHeader>
-            <CardContent>
-              {pieData.length > 0 ? (
-                <div className="h-64">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={80}
-                        paddingAngle={5}
-                        dataKey="value"
-                      >
-                        {pieData.map((_, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : (
-                <div className="h-64 flex items-center justify-center text-muted-foreground">
-                  Nenhum clique registrado ainda
-                </div>
-              )}
-              <div className="mt-4 space-y-2">
-                {pieData.map((item, index) => (
-                  <div key={item.name} className="flex items-center gap-2 text-sm">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                    />
-                    <span className="flex-1 truncate text-foreground">{item.name}</span>
-                    <span className="font-medium text-foreground">{item.value}</span>
-                  </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </TabsContent>
-
-      <TabsContent value="customize" className="space-y-6">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Color Settings */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Palette className="h-5 w-5" />
-                Cores
-              </CardTitle>
-              <CardDescription>Personalize as cores da sua página</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cor de Fundo</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="w-12 h-10 rounded border cursor-pointer"
-                  />
-                  <Input
-                    value={bgColor}
-                    onChange={(e) => setBgColor(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cor Principal (Botões)</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="w-12 h-10 rounded border cursor-pointer"
-                  />
-                  <Input
-                    value={primaryColor}
-                    onChange={(e) => setPrimaryColor(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Cor do Texto</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="color"
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className="w-12 h-10 rounded border cursor-pointer"
-                  />
-                  <Input
-                    value={textColor}
-                    onChange={(e) => setTextColor(e.target.value)}
-                    className="flex-1"
-                  />
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Estilo dos Botões</label>
-                <Select value={buttonStyle} onValueChange={setButtonStyle}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rounded">Arredondado</SelectItem>
-                    <SelectItem value="square">Quadrado</SelectItem>
-                    <SelectItem value="pill">Pílula</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <Button onClick={saveSettings} disabled={savingSettings} className="w-full gap-2">
-                {savingSettings ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
                 ) : (
-                  <Save className="h-4 w-4" />
+                  <label className="border-2 border-dashed rounded-lg p-8 text-center cursor-pointer hover:border-primary/50 transition-colors block">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="hidden"
+                      disabled={uploadingImage}
+                    />
+                    {uploadingImage ? (
+                      <Loader2 className="h-8 w-8 animate-spin mx-auto text-muted-foreground" />
+                    ) : (
+                      <>
+                        <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
+                        <p className="text-sm text-muted-foreground">Clique para enviar uma imagem</p>
+                      </>
+                    )}
+                  </label>
                 )}
-                Salvar Cores
-              </Button>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
 
-          {/* Background Image */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Upload className="h-5 w-5" />
-                Imagem de Fundo
-              </CardTitle>
-              <CardDescription>Adicione uma imagem de fundo</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              {settings?.background_image_url ? (
-                <div className="relative">
-                  <img
-                    src={settings.background_image_url}
-                    alt="Background"
-                    className="w-full h-48 object-cover rounded-lg"
-                  />
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    className="absolute top-2 right-2"
-                    onClick={removeBackgroundImage}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+            <Button onClick={saveSettings} disabled={savingSettings} className="w-full gap-2">
+              {savingSettings ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
               ) : (
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center">
-                  <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                  <p className="text-sm text-muted-foreground">Nenhuma imagem selecionada</p>
-                </div>
+                <Save className="h-4 w-4" />
               )}
+              Salvar Configurações
+            </Button>
+          </TabsContent>
+        </Tabs>
+      </div>
 
-              <div>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  id="bg-upload"
-                  disabled={uploadingImage}
-                />
-                <label htmlFor="bg-upload">
-                  <Button
-                    variant="outline"
-                    className="w-full gap-2 cursor-pointer"
-                    asChild
-                    disabled={uploadingImage}
-                  >
-                    <span>
-                      {uploadingImage ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (
-                        <Upload className="h-4 w-4" />
-                      )}
-                      Enviar Imagem
-                    </span>
-                  </Button>
-                </label>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Preview */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Pré-visualização</CardTitle>
-            <CardDescription>Veja como sua página ficará</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div
-              className="rounded-lg p-8 min-h-[300px] flex flex-col items-center justify-center"
-              style={{
-                backgroundColor: bgColor,
-                backgroundImage: settings?.background_image_url
-                  ? `url(${settings.background_image_url})`
-                  : undefined,
-                backgroundSize: "cover",
-                backgroundPosition: "center",
-              }}
-            >
-              <div className="text-center mb-6">
-                <div className="w-16 h-16 rounded-full bg-white/80 mx-auto mb-3" />
-                <h3 className="font-bold" style={{ color: textColor }}>
-                  Sun Route Hotel
-                </h3>
-                <p className="text-sm opacity-70" style={{ color: textColor }}>
-                  Sua hospedagem em Boa Vista
-                </p>
-              </div>
-
-              <div className="space-y-3 w-full max-w-xs">
-                {["Link de Exemplo 1", "Link de Exemplo 2"].map((label, i) => (
-                  <div
-                    key={i}
-                    className="p-3 flex items-center gap-3 bg-white/90"
-                    style={{
-                      borderRadius:
-                        buttonStyle === "pill"
-                          ? "9999px"
-                          : buttonStyle === "square"
-                          ? "4px"
-                          : "12px",
-                      borderLeft: `4px solid ${primaryColor}`,
-                    }}
-                  >
-                    <div
-                      className="w-8 h-8 rounded-lg flex items-center justify-center"
-                      style={{ backgroundColor: `${primaryColor}20` }}
-                    >
-                      <Link2 className="h-4 w-4" style={{ color: primaryColor }} />
-                    </div>
-                    <span style={{ color: textColor }}>{label}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+      {/* Preview Panel */}
+      <div className={`hidden lg:block sticky top-6 h-fit ${showPreview ? "" : "lg:hidden"}`}>
+        <LinktreePreview links={links} settings={previewSettings} />
+      </div>
+    </div>
   );
 };
 
