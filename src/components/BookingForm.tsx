@@ -279,6 +279,8 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
                 onDayMouseEnter={(date: Date) => {
                   if (checkIn && differenceInDays(date, checkIn) > 0) {
                     setHoveredDate(date);
+                  } else {
+                    setHoveredDate(null);
                   }
                 }}
                 onDayMouseLeave={() => setHoveredDate(null)}
@@ -295,7 +297,9 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
                   tomorrow.setDate(tomorrow.getDate() + 1);
                   return dateOnly < tomorrow;
                 }}
-                initialFocus
+                modifiers={checkIn ? { checkin: [checkIn] } : {}}
+                modifiersClassNames={{ checkin: "bg-brown/20 text-brown font-semibold ring-1 ring-brown/40 !opacity-100" }}
+                initialFocus={false}
                 className="pointer-events-auto"
               />
             </PopoverContent>

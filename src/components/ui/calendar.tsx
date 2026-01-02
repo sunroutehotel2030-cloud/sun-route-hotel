@@ -31,11 +31,11 @@ function Calendar({ className, classNames, showOutsideDays = true, ...props }: C
         head_cell: "text-brown-light rounded-md w-9 font-semibold text-[0.8rem]",
         row: "flex w-full mt-2",
         cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected].day-range-end)]:rounded-r-md first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md focus-within:relative focus-within:z-20",
-        day: "h-9 w-9 p-0 font-medium rounded-md transition-colors text-foreground hover:bg-golden-light/40 hover:text-brown focus:outline-none focus:ring-2 focus:ring-golden/50",
+        day: "h-9 w-9 p-0 font-medium rounded-md transition-colors text-foreground hover:bg-golden-light/40 hover:text-brown focus:outline-none focus-visible:ring-2 focus-visible:ring-golden/50",
         day_range_end: "day-range-end",
         day_selected:
           "bg-brown text-white font-bold hover:bg-brown/90 focus:bg-brown/90 shadow-md",
-        day_today: "ring-2 ring-golden-dark text-brown font-semibold",
+        day_today: "bg-golden-light/40 text-brown font-semibold",
         day_outside:
           "day-outside text-brown-light/50 opacity-50 aria-selected:bg-brown aria-selected:text-white aria-selected:opacity-100",
         day_disabled: "text-brown-light/40 opacity-40",
