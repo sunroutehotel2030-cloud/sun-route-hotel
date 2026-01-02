@@ -1,6 +1,6 @@
 import { useState } from "react";
-import { Calendar, Users, MessageCircle } from "lucide-react";
-import { format } from "date-fns";
+import { Calendar, Users, MessageCircle, BedDouble } from "lucide-react";
+import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
@@ -23,10 +23,49 @@ interface BookingFormProps {
   onBookingAttempt?: (data: { checkIn: Date; checkOut: Date; guests: number }) => void;
 }
 
+const roomTypes = {
+  double: { label: "Quarto Duplo", maxGuests: 2 },
+  triple: { label: "Quarto Triplo", maxGuests: 3 },
+  family: { label: "Quarto Família", maxGuests: 6 },
+};
+
 const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
   const [guests, setGuests] = useState<string>("2");
+  const [roomType, setRoomType] = useState<string>("double");
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkOutOpen, setCheckOutOpen] = useState(false);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const handleCheckInSelect = (date: Date | undefined) => {
+    setCheckIn(date);
+    setCheckInOpen(false);
+    if (date) {
+      // Clear check-out if it's before or equal to new check-in
+      if (checkOut && checkOut <= date) {
+        setCheckOut(undefined);
+      }
+      // Auto-open check-out picker
+      setTimeout(() => setCheckOutOpen(true), 200);
+    }
+  };
+
+  const handleCheckOutSelect = (date: Date | undefined) => {
+    setCheckOut(date);
+    setCheckOutOpen(false);
+  };
+
+  const handleRoomTypeChange = (value: string) => {
+    setRoomType(value);
+    const maxGuests = roomTypes[value as keyof typeof roomTypes].maxGuests;
+    // Adjust guests if current selection exceeds max for new room type
+    if (parseInt(guests) > maxGuests) {
+      setGuests(maxGuests.toString());
+    }
+  };
 
   const handleWhatsAppClick = async () => {
     if (!checkIn || !checkOut) {
@@ -54,15 +93,32 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
 
     const checkInFormatted = format(checkIn, "dd/MM/yyyy", { locale: ptBR });
     const checkOutFormatted = format(checkOut, "dd/MM/yyyy", { locale: ptBR });
+    const nights = differenceInDays(checkOut, checkIn);
+    const roomLabel = roomTypes[roomType as keyof typeof roomTypes].label;
 
     const message = encodeURIComponent(
-      `Olá, gostaria de reservar para ${guests} pessoas, de ${checkInFormatted} a ${checkOutFormatted}. Vi no site oficial.`
+      `Olá! 👋
+
+Gostaria de verificar disponibilidade:
+
+📅 Check-in: ${checkInFormatted}
+📅 Check-out: ${checkOutFormatted}
+🌙 ${nights} noite${nights > 1 ? "s" : ""}
+🛏️ ${roomLabel}
+👥 ${guests} hóspede${parseInt(guests) > 1 ? "s" : ""}
+
+Vi no site oficial. Aguardo retorno!`
     );
 
     window.open(`https://wa.me/5581984446199?text=${message}`, "_blank");
   };
 
   const isFormValid = checkIn && checkOut;
+  const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
+  const currentRoomType = roomTypes[roomType as keyof typeof roomTypes];
+
+  // Generate guest options based on room type
+  const guestOptions = Array.from({ length: currentRoomType.maxGuests }, (_, i) => i + 1);
 
   return (
     <div className="glass-card p-6 md:p-8 w-full max-w-md mx-auto">
@@ -71,12 +127,32 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
       </h3>
 
       <div className="space-y-4">
+        {/* Room Type */}
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-muted-foreground">
+            Tipo de Quarto
+          </label>
+          <Select value={roomType} onValueChange={handleRoomTypeChange}>
+            <SelectTrigger className="w-full h-12">
+              <div className="flex items-center">
+                <BedDouble className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Selecione o quarto" />
+              </div>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="double">Quarto Duplo (até 2 pessoas)</SelectItem>
+              <SelectItem value="triple">Quarto Triplo (até 3 pessoas)</SelectItem>
+              <SelectItem value="family">Quarto Família (até 6 pessoas)</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         {/* Check-in Date */}
         <div className="space-y-2">
           <label className="text-sm font-medium text-muted-foreground">
             Data de Check-in
           </label>
-          <Popover>
+          <Popover open={checkInOpen} onOpenChange={setCheckInOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -93,8 +169,12 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
               <CalendarComponent
                 mode="single"
                 selected={checkIn}
-                onSelect={setCheckIn}
-                disabled={(date) => date < new Date()}
+                onSelect={handleCheckInSelect}
+                disabled={(date) => {
+                  const dateOnly = new Date(date);
+                  dateOnly.setHours(0, 0, 0, 0);
+                  return dateOnly < today;
+                }}
                 initialFocus
               />
             </PopoverContent>
@@ -106,7 +186,7 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
           <label className="text-sm font-medium text-muted-foreground">
             Data de Check-out
           </label>
-          <Popover>
+          <Popover open={checkOutOpen} onOpenChange={setCheckOutOpen}>
             <PopoverTrigger asChild>
               <Button
                 variant="outline"
@@ -123,8 +203,20 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
               <CalendarComponent
                 mode="single"
                 selected={checkOut}
-                onSelect={setCheckOut}
-                disabled={(date) => date < (checkIn || new Date())}
+                onSelect={handleCheckOutSelect}
+                disabled={(date) => {
+                  const dateOnly = new Date(date);
+                  dateOnly.setHours(0, 0, 0, 0);
+                  if (checkIn) {
+                    const minCheckOut = new Date(checkIn);
+                    minCheckOut.setDate(minCheckOut.getDate() + 1);
+                    minCheckOut.setHours(0, 0, 0, 0);
+                    return dateOnly < minCheckOut;
+                  }
+                  const tomorrow = new Date(today);
+                  tomorrow.setDate(tomorrow.getDate() + 1);
+                  return dateOnly < tomorrow;
+                }}
                 initialFocus
               />
             </PopoverContent>
@@ -144,15 +236,24 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
               </div>
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="1">1 Hóspede</SelectItem>
-              <SelectItem value="2">2 Hóspedes</SelectItem>
-              <SelectItem value="3">3 Hóspedes</SelectItem>
-              <SelectItem value="4">4 Hóspedes</SelectItem>
-              <SelectItem value="5">5 Hóspedes</SelectItem>
-              <SelectItem value="6">6 Hóspedes</SelectItem>
+              {guestOptions.map((num) => (
+                <SelectItem key={num} value={num.toString()}>
+                  {num} Hóspede{num > 1 ? "s" : ""}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         </div>
+
+        {/* Booking Summary */}
+        {checkIn && checkOut && nights > 0 && (
+          <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
+            <div className="text-sm text-muted-foreground mb-1">Resumo da reserva:</div>
+            <div className="font-medium text-foreground">
+              {nights} noite{nights > 1 ? "s" : ""} • {currentRoomType.label} • {guests} hóspede{parseInt(guests) > 1 ? "s" : ""}
+            </div>
+          </div>
+        )}
 
         {/* WhatsApp Button */}
         <Button
