@@ -20,6 +20,7 @@ import {
   FileText,
   Bell,
   Share2,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +46,7 @@ import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/hooks/useAuth";
 import LinktreeManager from "@/components/admin/LinktreeManager";
+import PhotoManager from "@/components/admin/PhotoManager";
 
 interface Lead {
   id: string;
@@ -67,7 +69,7 @@ interface DailyClick {
   clicks: number;
 }
 
-type AdminSection = "dashboard" | "analytics" | "leads" | "links" | "linktree" | "settings";
+type AdminSection = "dashboard" | "analytics" | "leads" | "links" | "linktree" | "photos" | "settings";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
@@ -89,6 +91,7 @@ const AdminDashboard = () => {
     { id: "leads" as AdminSection, label: "Leads", icon: Users },
     { id: "links" as AdminSection, label: "Links", icon: Link2 },
     { id: "linktree" as AdminSection, label: "Linktree", icon: Share2 },
+    { id: "photos" as AdminSection, label: "Fotos", icon: ImageIcon },
     { id: "settings" as AdminSection, label: "Configurações", icon: Settings },
   ];
 
@@ -624,6 +627,8 @@ const AdminDashboard = () => {
         return renderLinks();
       case "linktree":
         return <LinktreeManager />;
+      case "photos":
+        return <PhotoManager />;
       case "settings":
         return renderSettings();
       default:

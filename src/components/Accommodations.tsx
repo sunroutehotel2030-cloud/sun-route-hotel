@@ -1,6 +1,5 @@
 import { Wifi, Tv, Coffee, Refrigerator } from "lucide-react";
-import roomDouble from "@/assets/room-double.jpg";
-import roomTriple from "@/assets/room-triple.jpg";
+import { useSiteImages } from "@/hooks/useSiteImages";
 
 const amenities = [
   { icon: Wifi, label: "Wi-Fi Grátis" },
@@ -9,22 +8,24 @@ const amenities = [
   { icon: Coffee, label: "Café da manhã" },
 ];
 
-const rooms = [
-  {
-    name: "Quarto Duplo",
-    description: "Ideal para casais ou viajantes a dois. Conforto e privacidade.",
-    image: roomDouble,
-    capacity: "2 pessoas",
-  },
-  {
-    name: "Quarto Triplo",
-    description: "Espaço amplo para famílias ou grupos de amigos.",
-    image: roomTriple,
-    capacity: "3 pessoas",
-  },
-];
-
 const Accommodations = () => {
+  const { getImageUrl } = useSiteImages();
+
+  const rooms = [
+    {
+      name: "Quarto Duplo",
+      description: "Ideal para casais ou viajantes a dois. Conforto e privacidade.",
+      image: getImageUrl("room_double"),
+      capacity: "2 pessoas",
+    },
+    {
+      name: "Quarto Triplo",
+      description: "Espaço amplo para famílias ou grupos de amigos.",
+      image: getImageUrl("room_triple"),
+      capacity: "3 pessoas",
+    },
+  ];
+
   return (
     <section id="acomodacoes" className="section-padding bg-secondary">
       <div className="container-hotel">
