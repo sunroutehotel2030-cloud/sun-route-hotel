@@ -14,6 +14,14 @@ interface SiteImage {
   alt_text: string | null;
 }
 
+interface GalleryImage {
+  id: string;
+  room_type: string;
+  image_url: string;
+  position: number;
+  alt_text: string | null;
+}
+
 const fallbacks: Record<string, string> = {
   hero: heroImageFallback,
   logo: logoImageFallback,
@@ -39,5 +47,29 @@ export const useSiteImages = () => {
     return image?.image_url || fallbacks[key] || "";
   };
 
-  return { getImageUrl, isLoading };
+  const getFallback = (key: string): string => {
+    return fallbacks[key] || "";
+  };
+
+  return { getImageUrl, getFallback, isLoading };
+};
+
+export const useRoomGallery = (roomType: string) => {
+  const { data: galleryImages = [], isLoading } = useQuery({
+    queryKey: ["room-gallery", roomType],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("room_gallery")
+        .select("*")
+        .eq("room_type", roomType)
+        .order("position", { ascending: true });
+
+      if (error) throw error;
+      return data as GalleryImage[];
+    },
+  });
+
+  const imageUrls = galleryImages.map((img) => img.image_url);
+
+  return { images: imageUrls, isLoading };
 };
