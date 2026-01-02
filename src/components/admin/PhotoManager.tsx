@@ -35,6 +35,7 @@ interface ImageCardProps {
   fallbackUrl: string;
   onUpload: (key: string, file: File) => Promise<void>;
   isUploading: boolean;
+  recommendedSize: string;
 }
 
 const ImageCard = ({
@@ -45,6 +46,7 @@ const ImageCard = ({
   fallbackUrl,
   onUpload,
   isUploading,
+  recommendedSize,
 }: ImageCardProps) => {
   const [preview, setPreview] = useState<string | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -91,6 +93,7 @@ const ImageCard = ({
           {title}
         </CardTitle>
         <CardDescription>{description}</CardDescription>
+        <p className="text-xs text-primary font-medium mt-1">📐 {recommendedSize}</p>
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
@@ -246,24 +249,28 @@ const PhotoManager = () => {
       title: "Imagem Hero (Principal)",
       description: "Imagem de fundo da seção principal do site",
       fallback: heroImageFallback,
+      recommendedSize: "1920 x 1080 px (16:9)",
     },
     {
       key: "logo",
       title: "Logo do Hotel",
       description: "Logo exibido na seção hero",
       fallback: logoImageFallback,
+      recommendedSize: "400 x 400 px (1:1, quadrado)",
     },
     {
       key: "room_double",
       title: "Quarto Duplo",
       description: "Foto do quarto duplo na galeria de acomodações",
       fallback: roomDoubleFallback,
+      recommendedSize: "800 x 600 px (4:3)",
     },
     {
       key: "room_triple",
       title: "Quarto Triplo",
       description: "Foto do quarto triplo na galeria de acomodações",
       fallback: roomTripleFallback,
+      recommendedSize: "800 x 600 px (4:3)",
     },
   ];
 
@@ -300,6 +307,7 @@ const PhotoManager = () => {
             fallbackUrl={config.fallback}
             onUpload={handleUpload}
             isUploading={uploadingKey === config.key}
+            recommendedSize={config.recommendedSize}
           />
         ))}
       </div>
