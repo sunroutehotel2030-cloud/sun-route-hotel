@@ -16,7 +16,6 @@ const Header = () => {
   }, []);
 
   const navLinks = [
-    { href: "#top", label: "Reserve Agora" },
     { href: "#acomodacoes", label: "Acomodações" },
     { href: "#depoimentos", label: "Depoimentos" },
     { href: "#contato", label: "Contato" },
@@ -55,6 +54,12 @@ const Header = () => {
                 {link.label}
               </a>
             ))}
+            <a
+              href="#top"
+              className="bg-primary text-primary-foreground px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary/90 transition-colors"
+            >
+              Reserve Agora
+            </a>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -82,6 +87,13 @@ const Header = () => {
                   {link.label}
                 </a>
               ))}
+              <a
+                href="#top"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className="bg-primary text-primary-foreground px-4 py-3 rounded-lg text-sm font-medium text-center hover:bg-primary/90 transition-colors"
+              >
+                Reserve Agora
+              </a>
             </div>
           </nav>
         )}
