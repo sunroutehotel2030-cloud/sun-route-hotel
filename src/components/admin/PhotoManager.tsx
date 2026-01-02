@@ -1,5 +1,5 @@
-import { useState, useRef } from "react";
-import { Upload, Loader2, Check, ImageIcon, X } from "lucide-react";
+import { useState } from "react";
+import { Upload, Loader2, ImageIcon, Edit } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -8,11 +8,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import ImageEditorModal from "./ImageEditorModal";
 
 // Static fallbacks
 import heroImageFallback from "@/assets/hero-hotel.jpg";
@@ -33,7 +32,7 @@ interface ImageCardProps {
   description: string;
   currentUrl: string;
   fallbackUrl: string;
-  onUpload: (key: string, file: File) => Promise<void>;
+  onEditClick: () => void;
   isUploading: boolean;
   recommendedSize: string;
 }
@@ -44,46 +43,11 @@ const ImageCard = ({
   description,
   currentUrl,
   fallbackUrl,
-  onUpload,
+  onEditClick,
   isUploading,
   recommendedSize,
 }: ImageCardProps) => {
-  const [preview, setPreview] = useState<string | null>(null);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (selectedFile) {
-      await onUpload(imageKey, selectedFile);
-      setPreview(null);
-      setSelectedFile(null);
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
-    }
-  };
-
-  const handleCancel = () => {
-    setPreview(null);
-    setSelectedFile(null);
-    if (inputRef.current) {
-      inputRef.current.value = "";
-    }
-  };
-
-  const displayUrl = preview || currentUrl || fallbackUrl;
+  const displayUrl = currentUrl || fallbackUrl;
 
   return (
     <Card>
@@ -103,48 +67,22 @@ const ImageCard = ({
               alt={title}
               className="w-full h-full object-cover"
             />
-            {preview && (
-              <div className="absolute top-2 right-2 bg-primary text-primary-foreground px-2 py-1 rounded text-xs">
-                Preview
+            {isUploading && (
+              <div className="absolute inset-0 bg-background/80 flex items-center justify-center">
+                <Loader2 className="h-8 w-8 animate-spin text-primary" />
               </div>
             )}
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor={`file-${imageKey}`}>Selecionar nova imagem</Label>
-            <Input
-              ref={inputRef}
-              id={`file-${imageKey}`}
-              type="file"
-              accept="image/*"
-              onChange={handleFileSelect}
-              disabled={isUploading}
-            />
-          </div>
-
-          {preview && (
-            <div className="flex gap-2">
-              <Button
-                onClick={handleUpload}
-                disabled={isUploading}
-                className="flex-1 gap-2"
-              >
-                {isUploading ? (
-                  <Loader2 className="h-4 w-4 animate-spin" />
-                ) : (
-                  <Check className="h-4 w-4" />
-                )}
-                Salvar
-              </Button>
-              <Button
-                variant="outline"
-                onClick={handleCancel}
-                disabled={isUploading}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </div>
-          )}
+          <Button
+            onClick={onEditClick}
+            disabled={isUploading}
+            className="w-full gap-2"
+            variant="outline"
+          >
+            <Edit className="h-4 w-4" />
+            Editar imagem
+          </Button>
         </div>
       </CardContent>
     </Card>
@@ -154,6 +92,11 @@ const ImageCard = ({
 const PhotoManager = () => {
   const queryClient = useQueryClient();
   const [uploadingKey, setUploadingKey] = useState<string | null>(null);
+  const [editingConfig, setEditingConfig] = useState<{
+    key: string;
+    title: string;
+    recommendedSize: string;
+  } | null>(null);
 
   const { data: siteImages = [], isLoading } = useQuery({
     queryKey: ["site-images"],
@@ -173,24 +116,23 @@ const PhotoManager = () => {
   };
 
   const uploadMutation = useMutation({
-    mutationFn: async ({ key, file }: { key: string; file: File }) => {
+    mutationFn: async ({ key, blob }: { key: string; blob: Blob }) => {
       setUploadingKey(key);
 
-      // Upload to storage
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${key}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      // Create file from blob with JPG extension
+      const fileName = `${key}-${Date.now()}.jpg`;
+      const file = new File([blob], fileName, { type: "image/jpeg" });
 
       const { error: uploadError } = await supabase.storage
         .from("site-images")
-        .upload(filePath, file, { upsert: true });
+        .upload(fileName, file, { upsert: true });
 
       if (uploadError) throw uploadError;
 
       // Get public URL
       const { data: urlData } = supabase.storage
         .from("site-images")
-        .getPublicUrl(filePath);
+        .getPublicUrl(fileName);
 
       const imageUrl = urlData.publicUrl;
 
@@ -224,7 +166,7 @@ const PhotoManager = () => {
       queryClient.invalidateQueries({ queryKey: ["site-images"] });
       toast({
         title: "Imagem atualizada",
-        description: "A imagem foi salva com sucesso.",
+        description: "A imagem foi salva com sucesso em formato JPG.",
       });
       setUploadingKey(null);
     },
@@ -239,8 +181,9 @@ const PhotoManager = () => {
     },
   });
 
-  const handleUpload = async (key: string, file: File) => {
-    await uploadMutation.mutateAsync({ key, file });
+  const handleSaveImage = async (blob: Blob) => {
+    if (!editingConfig) return;
+    await uploadMutation.mutateAsync({ key: editingConfig.key, blob });
   };
 
   const imageConfigs = [
@@ -256,7 +199,7 @@ const PhotoManager = () => {
       title: "Logo do Hotel",
       description: "Logo exibido na seção hero",
       fallback: logoImageFallback,
-      recommendedSize: "400 x 400 px (1:1, quadrado)",
+      recommendedSize: "400 x 400 px (1:1)",
     },
     {
       key: "room_double",
@@ -291,7 +234,7 @@ const PhotoManager = () => {
             Gerenciador de Fotos
           </CardTitle>
           <CardDescription>
-            Gerencie as imagens do site. As alterações são aplicadas imediatamente.
+            Gerencie as imagens do site. Aceita todos os formatos (PNG, WEBP, HEIC, etc.) e converte automaticamente para JPG.
           </CardDescription>
         </CardHeader>
       </Card>
@@ -305,12 +248,28 @@ const PhotoManager = () => {
             description={config.description}
             currentUrl={getImageUrl(config.key)}
             fallbackUrl={config.fallback}
-            onUpload={handleUpload}
+            onEditClick={() =>
+              setEditingConfig({
+                key: config.key,
+                title: config.title,
+                recommendedSize: config.recommendedSize,
+              })
+            }
             isUploading={uploadingKey === config.key}
             recommendedSize={config.recommendedSize}
           />
         ))}
       </div>
+
+      {editingConfig && (
+        <ImageEditorModal
+          isOpen={!!editingConfig}
+          onClose={() => setEditingConfig(null)}
+          onSave={handleSaveImage}
+          title={editingConfig.title}
+          recommendedSize={editingConfig.recommendedSize}
+        />
+      )}
     </div>
   );
 };
