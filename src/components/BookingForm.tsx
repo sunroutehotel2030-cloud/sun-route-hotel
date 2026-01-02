@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { Calendar, Users, MessageCircle, BedDouble } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Calendar, Users, MessageCircle, BedDouble, Clock, Eye, Flame, TrendingUp, AlertTriangle, Star } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
@@ -29,6 +29,34 @@ const roomTypes = {
   family: { label: "Quarto Família", maxGuests: 6 },
 };
 
+const urgencyMessages = [
+  { icon: Users, text: "4 pessoas reservando neste momento", type: "social" },
+  { icon: Eye, text: "7 pessoas visualizando agora", type: "views" },
+  { icon: Clock, text: "Última reserva há 8 minutos", type: "recent" },
+  { icon: AlertTriangle, text: "Restam apenas 2 quartos disponíveis", type: "scarcity" },
+  { icon: TrendingUp, text: "Alta demanda para estas datas", type: "demand" },
+  { icon: Star, text: "9 reservas confirmadas hoje", type: "social" },
+  { icon: Flame, text: "Oferta limitada - reserve agora!", type: "urgency" },
+  { icon: Users, text: "3 pessoas acabaram de reservar", type: "social" },
+];
+
+const getMessageStyles = (type: string) => {
+  switch (type) {
+    case "scarcity":
+      return "text-red-600 bg-red-50 border-red-200";
+    case "urgency":
+      return "text-orange-600 bg-orange-50 border-orange-200";
+    case "recent":
+      return "text-green-600 bg-green-50 border-green-200";
+    case "demand":
+      return "text-amber-600 bg-amber-50 border-amber-200";
+    case "views":
+      return "text-purple-600 bg-purple-50 border-purple-200";
+    default:
+      return "text-blue-600 bg-blue-50 border-blue-200";
+  }
+};
+
 const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [checkIn, setCheckIn] = useState<Date>();
   const [checkOut, setCheckOut] = useState<Date>();
@@ -36,6 +64,22 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [roomType, setRoomType] = useState<string>("double");
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
+  const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+
+  // Rotate urgency messages
+  useEffect(() => {
+    const randomStart = Math.floor(Math.random() * urgencyMessages.length);
+    setCurrentMessageIndex(randomStart);
+
+    const interval = setInterval(() => {
+      setCurrentMessageIndex((prev) => (prev + 1) % urgencyMessages.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const currentMessage = urgencyMessages[currentMessageIndex];
+  const IconComponent = currentMessage.icon;
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -117,9 +161,20 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
 
   return (
     <div className="glass-card p-6 md:p-8 w-full max-w-md mx-auto">
-      <h3 className="text-xl md:text-2xl font-display font-semibold text-foreground mb-6 text-center">
+      <h3 className="text-xl md:text-2xl font-display font-semibold text-foreground mb-4 text-center">
         Faça sua Reserva
       </h3>
+
+      {/* Urgency Message */}
+      <div
+        className={cn(
+          "flex items-center justify-center gap-2 text-sm rounded-lg py-2 px-3 mb-6 border transition-all duration-500",
+          getMessageStyles(currentMessage.type)
+        )}
+      >
+        <IconComponent className="h-4 w-4 flex-shrink-0" />
+        <span className="font-medium">{currentMessage.text}</span>
+      </div>
 
       <div className="space-y-4">
         {/* Room Type */}
