@@ -75,10 +75,27 @@ const Footer = () => {
         {/* Copyright */}
         <div className="border-t border-primary-foreground/10 mt-12 pt-8 text-center space-y-2">
           <p className="text-primary-foreground text-base font-medium">
-            2026 © Sun Route Hotel. Reservas: 81 98444-6199
+            2026 © Sun Route Hotel. Reservas:{" "}
+            <a 
+              href="https://wa.me/5581984446199" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:text-primary-foreground/80 transition-colors"
+            >
+              81 98444-6199
+            </a>
           </p>
           <p className="text-primary-foreground/60 text-sm">
-            Produzido por Wsmart Digital 81 99385.6099
+            Produzido por{" "}
+            <a 
+              href="https://wa.me/5581993856099" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="underline hover:text-primary-foreground/80 transition-colors"
+            >
+              Wsmart Digital
+            </a>{" "}
+            81 99385.6099
           </p>
         </div>
       </div>
