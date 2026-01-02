@@ -34,7 +34,7 @@ const googleReviews = [
     name: "Marcos Paulo",
     initial: "M",
     color: "bg-red-500",
-    text: "Muito próximo a praia, piscina muito boa e limpa, quarto limpo e cheiroso. Excelente experiência!",
+    text: "Quarto muito limpo e cheiroso, cama super confortável. Atendimento nota 10! Excelente experiência!",
     date: "há 1 semana",
     rating: 5,
   },
