@@ -30,14 +30,12 @@ const roomTypes = {
 };
 
 const urgencyMessages = [
-  { icon: Users, text: "4 pessoas reservando neste momento", type: "social" },
   { icon: Eye, text: "7 pessoas visualizando agora", type: "views" },
   { icon: Clock, text: "Última reserva há 8 minutos", type: "recent" },
   { icon: AlertTriangle, text: "Restam apenas 2 quartos disponíveis", type: "scarcity" },
   { icon: TrendingUp, text: "Alta demanda para estas datas", type: "demand" },
   { icon: Star, text: "9 reservas confirmadas hoje", type: "social" },
   { icon: Flame, text: "Oferta limitada - reserve agora!", type: "urgency" },
-  { icon: Users, text: "2 hóspedes acabaram de reservar", type: "social" },
 ];
 
 const getMessageStyles = (type: string) => {
