@@ -155,4 +155,14 @@
   .glass-card {
     @apply bg-card/80 backdrop-blur-lg rounded-2xl shadow-card border border-border/20;
   }
+
+  /* Calendar - garantia de contraste para dias selecionados */
+  .rdp button[aria-selected="true"] {
+    background-color: hsl(var(--brown)) !important;
+    color: white !important;
+  }
+  
+  .rdp button[aria-selected="true"] * {
+    color: inherit !important;
+  }
 }
