@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Lock, Mail, LogIn, Loader2, UserPlus } from "lucide-react";
+import { Lock, Mail, LogIn, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { z } from "zod";
 import logoHotel from "@/assets/logo-hotel.jpg";
 
@@ -18,11 +16,10 @@ const loginSchema = z.object({
 
 const AdminLogin = () => {
   const navigate = useNavigate();
-  const { user, isAdmin, loading, signIn, signUp } = useAuth();
+  const { user, isAdmin, loading, signIn } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [activeTab, setActiveTab] = useState("login");
 
   useEffect(() => {
     if (!loading && user) {
@@ -31,7 +28,7 @@ const AdminLogin = () => {
       } else {
         toast({
           title: "Acesso negado",
-          description: "Você não tem permissão de administrador. Aguarde a aprovação.",
+          description: "Você não tem permissão de administrador.",
           variant: "destructive",
         });
       }
@@ -74,71 +71,6 @@ const AdminLogin = () => {
     setIsSubmitting(false);
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    const validation = loginSchema.safeParse({ email, password });
-    if (!validation.success) {
-      toast({
-        title: "Erro de validação",
-        description: validation.error.errors[0].message,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsSubmitting(true);
-    
-    const { data, error } = await signUp(email, password);
-
-    if (error) {
-      let errorMessage = "Erro ao criar conta.";
-      
-      if (error.message.includes("already registered")) {
-        errorMessage = "Este email já está registrado.";
-      }
-      
-      toast({
-        title: "Erro ao cadastrar",
-        description: errorMessage,
-        variant: "destructive",
-      });
-      setIsSubmitting(false);
-      return;
-    }
-
-    if (data.user) {
-      // Call setup-admin edge function to add admin role
-      try {
-        const { data: adminData, error: adminError } = await supabase.functions.invoke("setup-admin", {
-          body: { email },
-        });
-
-        if (adminError) {
-          console.error("Error setting up admin:", adminError);
-          toast({
-            title: "Conta criada",
-            description: "Sua conta foi criada. Aguarde aprovação de administrador.",
-          });
-        } else {
-          toast({
-            title: "Conta de admin criada!",
-            description: "Você agora pode fazer login como administrador.",
-          });
-          setActiveTab("login");
-        }
-      } catch (err) {
-        console.error("Error calling setup-admin:", err);
-        toast({
-          title: "Conta criada",
-          description: "Sua conta foi criada. Faça login para continuar.",
-        });
-      }
-    }
-
-    setIsSubmitting(false);
-  };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -160,114 +92,56 @@ const AdminLogin = () => {
           </div>
           <CardTitle className="text-2xl font-display">Painel Administrativo</CardTitle>
           <CardDescription>
-            Entre com suas credenciais ou crie uma conta
+            Entre com suas credenciais de administrador
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="login">
-              <form onSubmit={handleLogin} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="admin@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Senha</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full gap-2"
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Email</label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="email"
+                  placeholder="admin@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="pl-10"
+                  required
                   disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <LogIn className="h-4 w-4" />
-                  )}
-                  Entrar
-                </Button>
-              </form>
-            </TabsContent>
+                />
+              </div>
+            </div>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-4">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Email</label>
-                  <div className="relative">
-                    <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="email"
-                      placeholder="admin@example.com"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10"
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground">Senha</label>
-                  <div className="relative">
-                    <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      type="password"
-                      placeholder="••••••••"
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10"
-                      required
-                      disabled={isSubmitting}
-                    />
-                  </div>
-                </div>
-
-                <Button
-                  type="submit"
-                  className="w-full gap-2"
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-foreground">Senha</label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                <Input
+                  type="password"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pl-10"
+                  required
                   disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                  ) : (
-                    <UserPlus className="h-4 w-4" />
-                  )}
-                  Criar Conta Admin
-                </Button>
-              </form>
-            </TabsContent>
-          </Tabs>
+                />
+              </div>
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full gap-2"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <LogIn className="h-4 w-4" />
+              )}
+              Entrar
+            </Button>
+          </form>
 
           <div className="mt-6 text-center">
             <Button
