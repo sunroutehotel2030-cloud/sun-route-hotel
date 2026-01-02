@@ -14,7 +14,99 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      leads: {
+        Row: {
+          check_in: string
+          check_out: string
+          clicked_at: string
+          created_at: string
+          guests: number
+          id: string
+          utm_source: string | null
+        }
+        Insert: {
+          check_in: string
+          check_out: string
+          clicked_at?: string
+          created_at?: string
+          guests: number
+          id?: string
+          utm_source?: string | null
+        }
+        Update: {
+          check_in?: string
+          check_out?: string
+          clicked_at?: string
+          created_at?: string
+          guests?: number
+          id?: string
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
+      page_views: {
+        Row: {
+          id: string
+          page_path: string | null
+          utm_source: string | null
+          viewed_at: string
+        }
+        Insert: {
+          id?: string
+          page_path?: string | null
+          utm_source?: string | null
+          viewed_at?: string
+        }
+        Update: {
+          id?: string
+          page_path?: string | null
+          utm_source?: string | null
+          viewed_at?: string
+        }
+        Relationships: []
+      }
+      tracked_links: {
+        Row: {
+          clicks: number
+          created_at: string
+          id: string
+          name: string
+          url: string
+        }
+        Insert: {
+          clicks?: number
+          created_at?: string
+          id?: string
+          name: string
+          url: string
+        }
+        Update: {
+          clicks?: number
+          created_at?: string
+          id?: string
+          name?: string
+          url?: string
+        }
+        Relationships: []
+      }
+      whatsapp_clicks: {
+        Row: {
+          clicked_at: string
+          id: string
+          utm_source: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          id?: string
+          utm_source?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          id?: string
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

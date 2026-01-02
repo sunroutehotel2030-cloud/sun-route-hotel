@@ -17,6 +17,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
+import { trackLead, trackWhatsAppClick } from "@/hooks/useAnalytics";
 
 interface BookingFormProps {
   onBookingAttempt?: (data: { checkIn: Date; checkOut: Date; guests: number }) => void;
@@ -27,19 +28,29 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [checkOut, setCheckOut] = useState<Date>();
   const [guests, setGuests] = useState<string>("2");
 
-  const handleWhatsAppClick = () => {
+  const handleWhatsAppClick = async () => {
     if (!checkIn || !checkOut) {
       return;
     }
 
-    // Track booking attempt
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmSource = urlParams.get("utm_source") || null;
+
+    // Track lead and WhatsApp click in the database
+    await Promise.all([
+      trackLead({
+        checkIn,
+        checkOut,
+        guests: parseInt(guests),
+        utmSource,
+      }),
+      trackWhatsAppClick(utmSource),
+    ]);
+
+    // Track booking attempt callback
     if (onBookingAttempt) {
       onBookingAttempt({ checkIn, checkOut, guests: parseInt(guests) });
     }
-
-    // Track UTM if present
-    const urlParams = new URLSearchParams(window.location.search);
-    const utmSource = urlParams.get("utm_source") || "direto";
 
     const checkInFormatted = format(checkIn, "dd/MM/yyyy", { locale: ptBR });
     const checkOutFormatted = format(checkOut, "dd/MM/yyyy", { locale: ptBR });
