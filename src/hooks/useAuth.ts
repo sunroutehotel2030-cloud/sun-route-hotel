@@ -119,3 +119,11 @@ export const useAuth = () => {
   };
 };
 
+// Avoid broken hook state during hot updates when this hook changes.
+if (import.meta.hot) {
+  import.meta.hot.accept(() => {
+    import.meta.hot.invalidate();
+  });
+}
+
+
