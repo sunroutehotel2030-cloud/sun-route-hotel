@@ -27,9 +27,6 @@ const RoomCard = ({ roomKey, name, description, capacity, fallbackImage }: RoomC
         fallbackImage={fallbackImage} 
         roomName={name} 
       />
-      <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium z-10">
-        {capacity}
-      </div>
       <div className="p-6">
         <h3 className="text-xl font-display font-semibold text-foreground mb-2">
           {name}
