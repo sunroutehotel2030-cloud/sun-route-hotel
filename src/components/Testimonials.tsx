@@ -78,7 +78,7 @@ const GoogleLogo = () => (
 );
 
 const Testimonials = () => {
-  const googleMapsUrl = "https://search.google.com/local/reviews?placeid=ChIJywpU8c37qgcRy5yZdnUGlF4";
+  const googleMapsUrl = "https://www.google.com/maps/search/Sun+Route+Hotel+Cabo+de+Santo+Agostinho";
 
   return (
     <section id="depoimentos" className="section-padding bg-background">
