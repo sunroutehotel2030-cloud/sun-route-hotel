@@ -1,9 +1,10 @@
-import { useState, useEffect } from "react";
-import { Calendar, Users, MessageCircle, BedDouble, Clock, Eye, Flame, TrendingUp, AlertTriangle, Star } from "lucide-react";
+import { useState, useEffect, useCallback } from "react";
+import { Calendar, Users, MessageCircle, BedDouble, Clock, Eye, Flame, TrendingUp, AlertTriangle, Star, Moon } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Button } from "@/components/ui/button";
 import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import type { DayContentProps } from "react-day-picker";
 import {
   Popover,
   PopoverContent,
@@ -65,6 +66,7 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
+  const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
 
   // Rotate urgency messages
   useEffect(() => {
@@ -83,6 +85,28 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
+
+  // Calculate nights for hover preview
+  const hoveredNights = checkIn && hoveredDate ? differenceInDays(hoveredDate, checkIn) : 0;
+
+  // Custom DayContent component for checkout calendar with nights preview
+  const CheckoutDayContent = useCallback(({ date, displayMonth }: DayContentProps) => {
+    const isOutside = date.getMonth() !== displayMonth.getMonth();
+    if (isOutside || !checkIn) return <span>{date.getDate()}</span>;
+    
+    const nightsCount = differenceInDays(date, checkIn);
+    const isValidCheckout = nightsCount > 0;
+    
+    return (
+      <div 
+        className="relative w-full h-full flex items-center justify-center"
+        onMouseEnter={() => isValidCheckout && setHoveredDate(date)}
+        onMouseLeave={() => setHoveredDate(null)}
+      >
+        <span>{date.getDate()}</span>
+      </div>
+    );
+  }, [checkIn]);
 
   const handleCheckInSelect = (date: Date | undefined) => {
     setCheckIn(date);
@@ -251,11 +275,17 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
               {checkIn && (
-                <div className="px-4 pt-3 pb-2 border-b bg-muted/50">
+                <div className="px-4 pt-3 pb-2 border-b bg-primary/10">
                   <p className="text-xs text-muted-foreground">Check-in selecionado:</p>
-                  <p className="text-sm font-medium text-foreground">
+                  <p className="text-sm font-semibold text-primary">
                     {format(checkIn, "EEEE, dd 'de' MMMM", { locale: ptBR })}
                   </p>
+                  {hoveredNights > 0 && (
+                    <div className="mt-2 flex items-center gap-1.5 text-sm font-medium text-primary animate-pulse">
+                      <Moon className="h-4 w-4" />
+                      <span>{hoveredNights} noite{hoveredNights > 1 ? "s" : ""}</span>
+                    </div>
+                  )}
                 </div>
               )}
               <CalendarComponent
@@ -274,6 +304,9 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
                   const tomorrow = new Date(today);
                   tomorrow.setDate(tomorrow.getDate() + 1);
                   return dateOnly < tomorrow;
+                }}
+                components={{
+                  DayContent: CheckoutDayContent,
                 }}
                 initialFocus
                 className="pointer-events-auto"
