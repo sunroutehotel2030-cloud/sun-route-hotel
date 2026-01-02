@@ -166,6 +166,33 @@ export type Database = {
         }
         Relationships: []
       }
+      site_images: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          id: string
+          image_key: string
+          image_url: string
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          image_key: string
+          image_url: string
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          image_key?: string
+          image_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       tracked_links: {
         Row: {
           clicks: number

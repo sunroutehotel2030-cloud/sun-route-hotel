@@ -1,15 +1,16 @@
-import heroImage from "@/assets/hero-hotel.jpg";
-import logoImage from "@/assets/logo-hotel.jpg";
 import BookingForm from "./BookingForm";
+import { useSiteImages } from "@/hooks/useSiteImages";
 
 const Hero = () => {
+  const { getImageUrl } = useSiteImages();
+
   return (
     <section className="relative min-h-screen flex items-center justify-center overflow-hidden">
       {/* Background Image */}
       <div className="absolute inset-0">
         <img
-          src={heroImage}
-          alt="Sun Route Hotel - Vista do quarto com praia"
+          src={getImageUrl("hero")}
+          alt="Sun Route Hotel - Vista do hotel"
           className="w-full h-full object-cover"
         />
         <div className="absolute inset-0 bg-gradient-to-b from-foreground/60 via-foreground/40 to-foreground/70" />
@@ -21,7 +22,7 @@ const Hero = () => {
           {/* Left - Text Content */}
           <div className="text-center lg:text-left max-w-xl animate-fade-up">
             <img
-              src={logoImage}
+              src={getImageUrl("logo")}
               alt="Sun Route Hotel Logo"
               className="h-24 md:h-32 w-auto mx-auto lg:mx-0 mb-6 rounded-xl shadow-lg"
             />
