@@ -12,6 +12,7 @@ import {
   Trash2,
   ExternalLink,
   RefreshCw,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,6 +36,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 interface Lead {
   id: string;
@@ -59,6 +61,7 @@ interface DailyClick {
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const { user, isAdmin, loading: authLoading, signOut } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [trackedLinks, setTrackedLinks] = useState<TrackedLink[]>([]);
   const [dailyClicks, setDailyClicks] = useState<DailyClick[]>([]);
@@ -70,13 +73,21 @@ const AdminDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const isAuthenticated = localStorage.getItem("admin_authenticated");
-    if (!isAuthenticated) {
-      navigate("/admin");
-      return;
+    if (!authLoading) {
+      if (!user) {
+        navigate("/admin");
+      } else if (!isAdmin) {
+        toast({
+          title: "Acesso negado",
+          description: "Você não tem permissão de administrador.",
+          variant: "destructive",
+        });
+        navigate("/admin");
+      } else {
+        fetchData();
+      }
     }
-    fetchData();
-  }, [navigate]);
+  }, [user, isAdmin, authLoading, navigate]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -150,8 +161,8 @@ const AdminDashboard = () => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem("admin_authenticated");
+  const handleLogout = async () => {
+    await signOut();
     navigate("/admin");
   };
 
@@ -215,14 +226,27 @@ const AdminDashboard = () => {
     return source;
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="bg-card border-b border-border sticky top-0 z-10">
         <div className="container-hotel px-4 py-4 flex items-center justify-between">
-          <h1 className="text-xl font-display font-bold text-foreground">
-            Painel Admin - Sun Route Hotel
-          </h1>
+          <div>
+            <h1 className="text-xl font-display font-bold text-foreground">
+              Painel Admin - Sun Route Hotel
+            </h1>
+            {user && (
+              <p className="text-sm text-muted-foreground">{user.email}</p>
+            )}
+          </div>
           <div className="flex items-center gap-2">
             <Button variant="outline" onClick={fetchData} disabled={loading} className="gap-2">
               <RefreshCw className={`h-4 w-4 ${loading ? "animate-spin" : ""}`} />
