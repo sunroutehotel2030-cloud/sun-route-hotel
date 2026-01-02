@@ -78,7 +78,7 @@ const GoogleLogo = () => (
 );
 
 const Testimonials = () => {
-  const googleMapsUrl = "https://www.google.com/maps/place/Sun+Route+Hotel/@-8.2878889,-35.0288889,17z/data=!4m8!3m7!1s0x7aaefbcdf154cab:0x5e96063576999ceb!8m2!3d-8.2878889!4d-35.0288889!9m1!1b1!16s%2Fg%2F11t3y0z3_s";
+  const googleMapsUrl = "https://search.google.com/local/reviews?placeid=ChIJywpU8c37qgcRy5yZdnUGlF4";
 
   return (
     <section id="depoimentos" className="section-padding bg-background">
