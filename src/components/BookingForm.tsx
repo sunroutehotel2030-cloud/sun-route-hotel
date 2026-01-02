@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Calendar, Users, MessageCircle, BedDouble } from "lucide-react";
 import { format, differenceInDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -36,35 +36,9 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [roomType, setRoomType] = useState<string>("double");
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
-  const [whatsappUrl, setWhatsappUrl] = useState<string>("");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-
-  // Generate WhatsApp URL when form data changes
-  useEffect(() => {
-    if (checkIn && checkOut) {
-      const checkInFormatted = format(checkIn, "dd/MM/yyyy", { locale: ptBR });
-      const checkOutFormatted = format(checkOut, "dd/MM/yyyy", { locale: ptBR });
-      const nightsCount = differenceInDays(checkOut, checkIn);
-      const roomLabel = roomTypes[roomType as keyof typeof roomTypes].label;
-
-      const message = encodeURIComponent(
-        `Ola! Gostaria de verificar disponibilidade:
-
-- Check-in: ${checkInFormatted}
-- Check-out: ${checkOutFormatted}
-- ${nightsCount} noite${nightsCount > 1 ? "s" : ""}
-- ${roomLabel}
-- ${guests} hospede${parseInt(guests) > 1 ? "s" : ""}
-
-Vi no site oficial. Aguardo retorno!`
-      );
-
-      const phone = "5581984446199";
-      setWhatsappUrl(`https://api.whatsapp.com/send?phone=${phone}&text=${message}`);
-    }
-  }, [checkIn, checkOut, guests, roomType]);
 
   const handleCheckInSelect = (date: Date | undefined) => {
     setCheckIn(date);
@@ -93,14 +67,14 @@ Vi no site oficial. Aguardo retorno!`
     }
   };
 
-  const handleTrackClick = async () => {
+  const handleTrackClick = () => {
     if (!checkIn || !checkOut) return;
 
     const urlParams = new URLSearchParams(window.location.search);
     const utmSource = urlParams.get("utm_source") || null;
 
-    // Track lead and WhatsApp click in the database
-    await Promise.all([
+    // Fire-and-forget tracking so it never blocks the navigation
+    void Promise.all([
       trackLead({
         checkIn,
         checkOut,
@@ -108,20 +82,42 @@ Vi no site oficial. Aguardo retorno!`
         utmSource,
       }),
       trackWhatsAppClick(utmSource),
-    ]);
+    ]).catch(() => {});
 
-    // Track booking attempt callback
     if (onBookingAttempt) {
       onBookingAttempt({ checkIn, checkOut, guests: parseInt(guests) });
     }
   };
 
-  const isFormValid = checkIn && checkOut;
+  const isFormValid = Boolean(checkIn && checkOut);
   const nights = checkIn && checkOut ? differenceInDays(checkOut, checkIn) : 0;
   const currentRoomType = roomTypes[roomType as keyof typeof roomTypes];
 
+  const phone = "5581984446199";
+  const isMobile =
+    typeof navigator !== "undefined" &&
+    /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  const linkTarget = isMobile ? "_self" : "_blank";
+
+  const whatsappMessage = isFormValid
+    ? encodeURIComponent(
+        `Ola! Gostaria de verificar disponibilidade:\n\n- Check-in: ${format(checkIn!, "dd/MM/yyyy", { locale: ptBR })}\n- Check-out: ${format(checkOut!, "dd/MM/yyyy", { locale: ptBR })}\n- ${nights} noite${nights > 1 ? "s" : ""}\n- ${currentRoomType.label}\n- ${guests} hospede${parseInt(guests) > 1 ? "s" : ""}\n\nVi no site oficial. Aguardo retorno!`
+      )
+    : "";
+
+  const whatsappSimpleHref = `https://wa.me/${phone}`;
+  const whatsappComplexHref = isFormValid
+    ? `${whatsappSimpleHref}?text=${whatsappMessage}`
+    : whatsappSimpleHref;
+  const whatsappApiHref = isFormValid
+    ? `https://api.whatsapp.com/send?phone=${phone}&text=${whatsappMessage}`
+    : `https://api.whatsapp.com/send?phone=${phone}`;
+
   // Generate guest options based on room type
-  const guestOptions = Array.from({ length: currentRoomType.maxGuests }, (_, i) => i + 1);
+  const guestOptions = Array.from(
+    { length: currentRoomType.maxGuests },
+    (_, i) => i + 1
+  );
 
   return (
     <div className="glass-card p-6 md:p-8 w-full max-w-md mx-auto">
@@ -260,16 +256,39 @@ Vi no site oficial. Aguardo retorno!`
 
         {/* WhatsApp Button */}
         {isFormValid ? (
-          <a
-            href={whatsappUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={handleTrackClick}
-            className="btn-whatsapp w-full mt-6 inline-flex items-center justify-center gap-2"
-          >
-            <MessageCircle className="h-5 w-5" />
-            Verificar Disponibilidade no WhatsApp
-          </a>
+          <div className="mt-6 space-y-3">
+            <a
+              href={whatsappComplexHref}
+              target={linkTarget}
+              rel="noopener noreferrer"
+              onClick={handleTrackClick}
+              className="btn-whatsapp w-full inline-flex items-center justify-center gap-2"
+            >
+              <MessageCircle className="h-5 w-5" />
+              Verificar Disponibilidade no WhatsApp
+            </a>
+
+            <div className="text-xs text-muted-foreground text-center">
+              Teste:{" "}
+              <a
+                href={whatsappSimpleHref}
+                target={linkTarget}
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                link simples
+              </a>
+              {" • "}
+              <a
+                href={whatsappApiHref}
+                target={linkTarget}
+                rel="noopener noreferrer"
+                className="underline underline-offset-4 hover:text-foreground"
+              >
+                link complexo
+              </a>
+            </div>
+          </div>
         ) : (
           <Button
             disabled
@@ -285,3 +304,4 @@ Vi no site oficial. Aguardo retorno!`
 };
 
 export default BookingForm;
+
