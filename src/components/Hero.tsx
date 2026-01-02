@@ -26,7 +26,7 @@ const Hero = () => {
               className="h-24 md:h-32 w-auto mx-auto lg:mx-0 mb-6 rounded-xl shadow-lg"
             />
             <h1 className="text-4xl md:text-5xl lg:text-6xl font-display font-bold text-primary-foreground mb-4 leading-tight">
-              Seu Refúgio de <span className="text-golden-light">Tranquilidade</span>
+              Hotel conceito com a <span className="text-golden-light">melhor estrutura</span>
             </h1>
             <p className="text-lg md:text-xl text-primary-foreground/90 mb-8 font-light">
               Descubra o conforto e a tranquilidade no coração de Cabo de Santo Agostinho
