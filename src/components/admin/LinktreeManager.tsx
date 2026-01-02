@@ -26,8 +26,9 @@ import {
   Palette,
   Upload,
   Check,
+  Download,
 } from "lucide-react";
-import { QRCodeSVG } from "qrcode.react";
+import { QRCodeSVG, QRCodeCanvas } from "qrcode.react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -569,7 +570,7 @@ const LinktreeManager = () => {
             <CardContent className="flex items-center justify-center">
               <Dialog>
                 <DialogTrigger asChild>
-                  <div className="cursor-pointer hover:opacity-80 transition-opacity">
+                  <div className="cursor-pointer hover:opacity-80 transition-opacity hover:scale-105">
                     <QRCodeSVG value={linktreeUrl} size={80} />
                   </div>
                 </DialogTrigger>
@@ -581,12 +582,44 @@ const LinktreeManager = () => {
                     </DialogDescription>
                   </DialogHeader>
                   <div className="flex flex-col items-center gap-4 py-4">
-                    <QRCodeSVG value={linktreeUrl} size={250} />
+                    <div className="bg-white p-4 rounded-xl">
+                      <QRCodeCanvas 
+                        id="qr-code-canvas"
+                        value={linktreeUrl} 
+                        size={250} 
+                        level="H"
+                        includeMargin={true}
+                      />
+                    </div>
                     <p className="text-sm text-muted-foreground text-center">{linktreeUrl}</p>
-                    <Button onClick={copyLink} variant="outline" className="gap-2">
-                      {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                      Copiar Link
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={copyLink} variant="outline" className="gap-2">
+                        {copied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                        Copiar Link
+                      </Button>
+                      <Button 
+                        onClick={() => {
+                          const canvas = document.getElementById("qr-code-canvas") as HTMLCanvasElement;
+                          if (canvas) {
+                            const pngUrl = canvas.toDataURL("image/png").replace("image/png", "image/octet-stream");
+                            const downloadLink = document.createElement("a");
+                            downloadLink.href = pngUrl;
+                            downloadLink.download = "linktree-qrcode.png";
+                            document.body.appendChild(downloadLink);
+                            downloadLink.click();
+                            document.body.removeChild(downloadLink);
+                            toast({
+                              title: "QR Code baixado!",
+                              description: "A imagem foi salva no seu dispositivo.",
+                            });
+                          }
+                        }} 
+                        className="gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        Baixar PNG
+                      </Button>
+                    </div>
                   </div>
                 </DialogContent>
               </Dialog>
