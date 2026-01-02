@@ -54,11 +54,6 @@ const Header = () => {
                 {link.label}
               </a>
             ))}
-            <a href="#top">
-              <Button className="btn-primary text-sm">
-                Reservar Agora
-              </Button>
-            </a>
           </nav>
 
           {/* Mobile Menu Button */}
@@ -86,11 +81,6 @@ const Header = () => {
                   {link.label}
                 </a>
               ))}
-              <a href="#top" onClick={() => setIsMobileMenuOpen(false)}>
-                <Button className="btn-primary w-full mt-2">
-                  Reservar Agora
-                </Button>
-              </a>
             </div>
           </nav>
         )}
