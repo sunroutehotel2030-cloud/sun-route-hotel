@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Plus, Trash2, Loader2, GripVertical, ImageIcon, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ImageEditorModal from "./ImageEditorModal";
+import { cn } from "@/lib/utils";
 
 interface GalleryImage {
   id: string;
@@ -35,6 +36,9 @@ const RoomGalleryManager = ({
   const queryClient = useQueryClient();
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [draggedId, setDraggedId] = useState<string | null>(null);
+  const [dragOverId, setDragOverId] = useState<string | null>(null);
+  const dragCounter = useRef(0);
 
   const { data: galleryImages = [], isLoading } = useQuery({
     queryKey: ["room-gallery", roomType],
@@ -126,34 +130,80 @@ const RoomGalleryManager = ({
   });
 
   const reorderMutation = useMutation({
-    mutationFn: async ({
-      id,
-      newPosition,
-    }: {
-      id: string;
-      newPosition: number;
-    }) => {
-      const { error } = await supabase
-        .from("room_gallery")
-        .update({ position: newPosition })
-        .eq("id", id);
-      if (error) throw error;
+    mutationFn: async (updates: { id: string; position: number }[]) => {
+      // Update all positions in a batch
+      for (const update of updates) {
+        const { error } = await supabase
+          .from("room_gallery")
+          .update({ position: update.position, updated_at: new Date().toISOString() })
+          .eq("id", update.id);
+        if (error) throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["room-gallery", roomType] });
     },
   });
 
-  const moveImage = (index: number, direction: "up" | "down") => {
-    const newIndex = direction === "up" ? index - 1 : index + 1;
-    if (newIndex < 0 || newIndex >= galleryImages.length) return;
+  // Drag and drop handlers
+  const handleDragStart = (e: React.DragEvent, id: string) => {
+    setDraggedId(id);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", id);
+  };
 
-    const currentImage = galleryImages[index];
-    const swapImage = galleryImages[newIndex];
+  const handleDragEnd = () => {
+    setDraggedId(null);
+    setDragOverId(null);
+    dragCounter.current = 0;
+  };
 
-    // Swap positions
-    reorderMutation.mutate({ id: currentImage.id, newPosition: swapImage.position });
-    reorderMutation.mutate({ id: swapImage.id, newPosition: currentImage.position });
+  const handleDragEnter = (e: React.DragEvent, id: string) => {
+    e.preventDefault();
+    dragCounter.current++;
+    if (id !== draggedId) {
+      setDragOverId(id);
+    }
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    dragCounter.current--;
+    if (dragCounter.current === 0) {
+      setDragOverId(null);
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+  };
+
+  const handleDrop = (e: React.DragEvent, targetId: string) => {
+    e.preventDefault();
+    setDragOverId(null);
+    dragCounter.current = 0;
+
+    if (!draggedId || draggedId === targetId) return;
+
+    const draggedIndex = galleryImages.findIndex((img) => img.id === draggedId);
+    const targetIndex = galleryImages.findIndex((img) => img.id === targetId);
+
+    if (draggedIndex === -1 || targetIndex === -1) return;
+
+    // Create new order
+    const newOrder = [...galleryImages];
+    const [removed] = newOrder.splice(draggedIndex, 1);
+    newOrder.splice(targetIndex, 0, removed);
+
+    // Update positions
+    const updates = newOrder.map((img, index) => ({
+      id: img.id,
+      position: index,
+    }));
+
+    reorderMutation.mutate(updates);
+    setDraggedId(null);
   };
 
   const handleSaveImage = async (blob: Blob) => {
@@ -186,12 +236,23 @@ const RoomGalleryManager = ({
               {galleryImages.map((image, index) => (
                 <div
                   key={image.id}
-                  className="relative group aspect-[4/3] rounded-lg overflow-hidden bg-secondary"
+                  draggable
+                  onDragStart={(e) => handleDragStart(e, image.id)}
+                  onDragEnd={handleDragEnd}
+                  onDragEnter={(e) => handleDragEnter(e, image.id)}
+                  onDragLeave={handleDragLeave}
+                  onDragOver={handleDragOver}
+                  onDrop={(e) => handleDrop(e, image.id)}
+                  className={cn(
+                    "relative group aspect-[4/3] rounded-lg overflow-hidden bg-secondary cursor-grab active:cursor-grabbing transition-all duration-200",
+                    draggedId === image.id && "opacity-50 scale-95",
+                    dragOverId === image.id && "ring-2 ring-primary ring-offset-2 ring-offset-background scale-105"
+                  )}
                 >
                   <img
                     src={image.image_url}
                     alt={image.alt_text || `Foto ${index + 1}`}
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover pointer-events-none"
                   />
 
                   {/* First image indicator */}
@@ -201,29 +262,23 @@ const RoomGalleryManager = ({
                     </div>
                   )}
 
-                  {/* Overlay with actions */}
-                  <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-1">
-                    {/* Reorder buttons */}
-                    <div className="flex flex-col gap-0.5">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6"
-                        onClick={() => moveImage(index, "up")}
-                        disabled={index === 0}
-                      >
-                        <GripVertical className="h-3 w-3 rotate-90" />
-                      </Button>
-                    </div>
+                  {/* Drag handle indicator */}
+                  <div className="absolute top-1 right-1 bg-background/80 text-foreground p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                    <GripVertical className="h-3 w-3" />
+                  </div>
 
-                    {/* Delete button */}
+                  {/* Delete button overlay */}
+                  <div className="absolute inset-0 bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                     <Button
                       size="icon"
                       variant="destructive"
-                      className="h-7 w-7"
-                      onClick={() => deleteMutation.mutate(image.id)}
+                      className="h-8 w-8"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        deleteMutation.mutate(image.id);
+                      }}
                     >
-                      <Trash2 className="h-3 w-3" />
+                      <Trash2 className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
