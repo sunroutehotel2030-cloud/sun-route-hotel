@@ -16,6 +16,7 @@ const Header = () => {
   }, []);
 
   const navLinks = [
+    { href: "#top", label: "Reserve Agora" },
     { href: "#acomodacoes", label: "Acomodações" },
     { href: "#depoimentos", label: "Depoimentos" },
     { href: "#contato", label: "Contato" },
