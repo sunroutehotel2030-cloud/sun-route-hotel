@@ -52,6 +52,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, PieChart, Pi
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { validateUrl } from "@/lib/urlValidation";
 import LinktreeLinkItem from "./LinktreeLinkItem";
 import LinktreeIconPicker from "./LinktreeIconPicker";
 import LinktreeProfileEditor from "./LinktreeProfileEditor";
@@ -243,10 +244,21 @@ const LinktreeManager = () => {
   };
 
   const handleSave = async () => {
-    if (!formTitle.trim() || !formUrl.trim()) {
+    if (!formTitle.trim()) {
       toast({
-        title: "Campos obrigatórios",
-        description: "Preencha o título e a URL.",
+        title: "Título obrigatório",
+        description: "Preencha o título do link.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate URL format
+    const urlValidation = validateUrl(formUrl);
+    if (!urlValidation.valid) {
+      toast({
+        title: "URL inválida",
+        description: urlValidation.error || "Use uma URL válida começando com http:// ou https://",
         variant: "destructive",
       });
       return;

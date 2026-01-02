@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { validateUrl } from "@/lib/urlValidation";
 import {
   Table,
   TableBody,
@@ -184,21 +185,39 @@ const AdminDashboard = () => {
   };
 
   const handleAddLink = async () => {
-    if (newLinkName && newLinkUrl) {
-      const { error } = await supabase.from("tracked_links").insert({
-        name: newLinkName,
-        url: newLinkUrl,
+    if (!newLinkName.trim()) {
+      toast({
+        title: "Nome obrigatório",
+        description: "Digite um nome para o link.",
+        variant: "destructive",
       });
+      return;
+    }
 
-      if (!error) {
-        setNewLinkName("");
-        setNewLinkUrl("");
-        fetchData();
-        toast({
-          title: "Link adicionado",
-          description: "O link foi cadastrado com sucesso.",
-        });
-      }
+    // Validate URL format
+    const urlValidation = validateUrl(newLinkUrl);
+    if (!urlValidation.valid) {
+      toast({
+        title: "URL inválida",
+        description: urlValidation.error || "Use uma URL válida começando com http:// ou https://",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const { error } = await supabase.from("tracked_links").insert({
+      name: newLinkName.trim(),
+      url: newLinkUrl.trim(),
+    });
+
+    if (!error) {
+      setNewLinkName("");
+      setNewLinkUrl("");
+      fetchData();
+      toast({
+        title: "Link adicionado",
+        description: "O link foi cadastrado com sucesso.",
+      });
     }
   };
 

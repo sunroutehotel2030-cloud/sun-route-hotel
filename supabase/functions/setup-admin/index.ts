@@ -18,6 +18,54 @@ serve(async (req) => {
     
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Get the authorization header to verify the caller is an authenticated admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.log("No authorization header provided");
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - No authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Verify the caller is authenticated
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !caller) {
+      console.log("Invalid token or user not found:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the caller is already an admin
+    const { data: callerRole, error: roleCheckError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", caller.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleCheckError) {
+      console.error("Error checking caller role:", roleCheckError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify admin status" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!callerRole) {
+      console.log("Caller is not an admin:", caller.id);
+      return new Response(
+        JSON.stringify({ error: "Forbidden - Admin access required" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Now proceed - caller is verified admin
     const { email } = await req.json();
 
     if (!email) {
@@ -27,7 +75,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Looking for user with email:", email);
+    console.log("Admin", caller.email, "setting up admin for:", email);
 
     // Find user by email
     const { data: userData, error: userError } = await supabaseAdmin.auth.admin.listUsers();
@@ -84,7 +132,7 @@ serve(async (req) => {
       );
     }
 
-    console.log("Admin role added successfully");
+    console.log("Admin role added successfully by", caller.email);
 
     return new Response(
       JSON.stringify({ message: "Admin role added successfully", userId: user.id }),

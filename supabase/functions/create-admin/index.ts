@@ -17,15 +17,55 @@ serve(async (req) => {
     
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { email, password, secret_key } = await req.json();
-
-    // Simple security check - only allow with secret key
-    if (secret_key !== "sunroute2024admin") {
+    // Get the authorization header to verify the caller is an authenticated admin
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      console.log("No authorization header provided");
       return new Response(
-        JSON.stringify({ error: "Invalid secret key" }),
+        JSON.stringify({ error: "Unauthorized - No authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const token = authHeader.replace("Bearer ", "");
+    
+    // Verify the caller is authenticated
+    const { data: { user: caller }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    
+    if (authError || !caller) {
+      console.log("Invalid token or user not found:", authError?.message);
+      return new Response(
+        JSON.stringify({ error: "Unauthorized - Invalid token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify the caller is already an admin
+    const { data: callerRole, error: roleCheckError } = await supabaseAdmin
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", caller.id)
+      .eq("role", "admin")
+      .maybeSingle();
+
+    if (roleCheckError) {
+      console.error("Error checking caller role:", roleCheckError);
+      return new Response(
+        JSON.stringify({ error: "Failed to verify admin status" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    if (!callerRole) {
+      console.log("Caller is not an admin:", caller.id);
+      return new Response(
+        JSON.stringify({ error: "Forbidden - Admin access required" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Now proceed with admin creation - caller is verified admin
+    const { email, password } = await req.json();
 
     if (!email || !password) {
       return new Response(
@@ -34,13 +74,13 @@ serve(async (req) => {
       );
     }
 
-    console.log("Creating admin user:", email);
+    console.log("Admin", caller.email, "creating new admin user:", email);
 
     // Create user using admin API
     const { data: userData, error: createError } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto confirm email
+      email_confirm: true,
     });
 
     if (createError) {
@@ -103,7 +143,7 @@ serve(async (req) => {
       console.error("Error adding role:", roleError);
     }
 
-    console.log("Admin created successfully");
+    console.log("Admin created successfully by", caller.email);
 
     return new Response(
       JSON.stringify({ 
