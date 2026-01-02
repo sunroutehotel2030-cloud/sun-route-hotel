@@ -37,7 +37,7 @@ const urgencyMessages = [
   { icon: TrendingUp, text: "Alta demanda para estas datas", type: "demand" },
   { icon: Star, text: "9 reservas confirmadas hoje", type: "social" },
   { icon: Flame, text: "Oferta limitada - reserve agora!", type: "urgency" },
-  { icon: Users, text: "3 pessoas acabaram de reservar", type: "social" },
+  { icon: Users, text: "2 hóspedes acabaram de reservar", type: "social" },
 ];
 
 const getMessageStyles = (type: string) => {
