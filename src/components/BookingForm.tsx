@@ -108,7 +108,13 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
 Vi no site oficial. Aguardo retorno!`
     );
 
-    window.open(`https://wa.me/5581984446199?text=${message}`, "_blank");
+    const phone = "5581984446199";
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    const whatsappUrl = isMobile
+      ? `https://wa.me/${phone}?text=${message}`
+      : `https://web.whatsapp.com/send?phone=${phone}&text=${message}`;
+
+    window.open(whatsappUrl, "_blank", "noopener,noreferrer");
   };
 
   const isFormValid = checkIn && checkOut;
