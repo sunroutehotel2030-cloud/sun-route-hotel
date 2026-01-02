@@ -250,6 +250,14 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-auto p-0" align="start">
+              {checkIn && (
+                <div className="px-4 pt-3 pb-2 border-b bg-muted/50">
+                  <p className="text-xs text-muted-foreground">Check-in selecionado:</p>
+                  <p className="text-sm font-medium text-foreground">
+                    {format(checkIn, "EEEE, dd 'de' MMMM", { locale: ptBR })}
+                  </p>
+                </div>
+              )}
               <CalendarComponent
                 mode="single"
                 selected={checkOut}
@@ -268,6 +276,7 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
                   return dateOnly < tomorrow;
                 }}
                 initialFocus
+                className="pointer-events-auto"
               />
             </PopoverContent>
           </Popover>
