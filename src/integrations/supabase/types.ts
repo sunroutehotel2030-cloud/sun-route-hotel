@@ -181,6 +181,36 @@ export type Database = {
         }
         Relationships: []
       }
+      room_gallery: {
+        Row: {
+          alt_text: string | null
+          created_at: string
+          id: string
+          image_url: string
+          position: number
+          room_type: string
+          updated_at: string
+        }
+        Insert: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          image_url: string
+          position?: number
+          room_type: string
+          updated_at?: string
+        }
+        Update: {
+          alt_text?: string | null
+          created_at?: string
+          id?: string
+          image_url?: string
+          position?: number
+          room_type?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       site_images: {
         Row: {
           alt_text: string | null

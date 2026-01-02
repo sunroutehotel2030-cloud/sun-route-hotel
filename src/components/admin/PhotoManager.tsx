@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import ImageEditorModal from "./ImageEditorModal";
+import RoomGalleryManager from "./RoomGalleryManager";
 
 // Static fallbacks
 import heroImageFallback from "@/assets/hero-hotel.jpg";
@@ -186,7 +187,7 @@ const PhotoManager = () => {
     await uploadMutation.mutateAsync({ key: editingConfig.key, blob });
   };
 
-  const imageConfigs = [
+  const singleImageConfigs = [
     {
       key: "hero",
       title: "Imagem Hero (Principal)",
@@ -201,19 +202,18 @@ const PhotoManager = () => {
       fallback: logoImageFallback,
       recommendedSize: "400 x 400 px (1:1)",
     },
+  ];
+
+  const roomGalleryConfigs = [
     {
-      key: "room_double",
+      roomType: "room_double",
       title: "Quarto Duplo",
-      description: "Foto do quarto duplo na galeria de acomodações",
       fallback: roomDoubleFallback,
-      recommendedSize: "800 x 600 px (4:3)",
     },
     {
-      key: "room_triple",
+      roomType: "room_triple",
       title: "Quarto Triplo",
-      description: "Foto do quarto triplo na galeria de acomodações",
       fallback: roomTripleFallback,
-      recommendedSize: "800 x 600 px (4:3)",
     },
   ];
 
@@ -239,8 +239,9 @@ const PhotoManager = () => {
         </CardHeader>
       </Card>
 
+      {/* Single images: Hero and Logo */}
       <div className="grid md:grid-cols-2 gap-6">
-        {imageConfigs.map((config) => (
+        {singleImageConfigs.map((config) => (
           <ImageCard
             key={config.key}
             imageKey={config.key}
@@ -257,6 +258,18 @@ const PhotoManager = () => {
             }
             isUploading={uploadingKey === config.key}
             recommendedSize={config.recommendedSize}
+          />
+        ))}
+      </div>
+
+      {/* Room galleries with multiple images */}
+      <div className="grid md:grid-cols-2 gap-6">
+        {roomGalleryConfigs.map((config) => (
+          <RoomGalleryManager
+            key={config.roomType}
+            roomType={config.roomType}
+            roomTitle={config.title}
+            fallbackImage={config.fallback}
           />
         ))}
       </div>

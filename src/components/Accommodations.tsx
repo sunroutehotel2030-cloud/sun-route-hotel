@@ -1,5 +1,6 @@
 import { Wifi, Tv, Coffee, Refrigerator } from "lucide-react";
-import { useSiteImages } from "@/hooks/useSiteImages";
+import { useSiteImages, useRoomGallery } from "@/hooks/useSiteImages";
+import RoomGallery from "./RoomGallery";
 
 const amenities = [
   { icon: Wifi, label: "Wi-Fi Grátis" },
@@ -8,20 +9,64 @@ const amenities = [
   { icon: Coffee, label: "Café da manhã" },
 ];
 
+interface RoomCardProps {
+  roomKey: string;
+  name: string;
+  description: string;
+  capacity: string;
+  fallbackImage: string;
+}
+
+const RoomCard = ({ roomKey, name, description, capacity, fallbackImage }: RoomCardProps) => {
+  const { images } = useRoomGallery(roomKey);
+
+  return (
+    <article className="card-elegant group">
+      <RoomGallery 
+        images={images} 
+        fallbackImage={fallbackImage} 
+        roomName={name} 
+      />
+      <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium z-10">
+        {capacity}
+      </div>
+      <div className="p-6">
+        <h3 className="text-xl font-display font-semibold text-foreground mb-2">
+          {name}
+        </h3>
+        <p className="text-muted-foreground text-sm">
+          {description}
+        </p>
+        <div className="flex flex-wrap gap-2 mt-4">
+          {amenities.map((amenity) => (
+            <span
+              key={amenity.label}
+              className="inline-flex items-center gap-1 text-xs bg-secondary px-2 py-1 rounded-md text-muted-foreground"
+            >
+              <amenity.icon className="h-3 w-3" />
+              {amenity.label}
+            </span>
+          ))}
+        </div>
+      </div>
+    </article>
+  );
+};
+
 const Accommodations = () => {
-  const { getImageUrl } = useSiteImages();
+  const { getFallback } = useSiteImages();
 
   const rooms = [
     {
+      key: "room_double",
       name: "Quarto Duplo",
       description: "Ideal para casais ou viajantes a dois. Conforto e privacidade.",
-      image: getImageUrl("room_double"),
       capacity: "2 pessoas",
     },
     {
+      key: "room_triple",
       name: "Quarto Triplo",
       description: "Espaço amplo para famílias ou grupos de amigos.",
-      image: getImageUrl("room_triple"),
       capacity: "3 pessoas",
     },
   ];
@@ -54,37 +99,14 @@ const Accommodations = () => {
         {/* Room Cards */}
         <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
           {rooms.map((room) => (
-            <article key={room.name} className="card-elegant group">
-              <div className="relative overflow-hidden aspect-[4/3]">
-                <img
-                  src={room.image}
-                  alt={room.name}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                />
-                <div className="absolute top-4 right-4 bg-primary text-primary-foreground px-3 py-1 rounded-full text-sm font-medium">
-                  {room.capacity}
-                </div>
-              </div>
-              <div className="p-6">
-                <h3 className="text-xl font-display font-semibold text-foreground mb-2">
-                  {room.name}
-                </h3>
-                <p className="text-muted-foreground text-sm">
-                  {room.description}
-                </p>
-                <div className="flex flex-wrap gap-2 mt-4">
-                  {amenities.map((amenity) => (
-                    <span
-                      key={amenity.label}
-                      className="inline-flex items-center gap-1 text-xs bg-secondary px-2 py-1 rounded-md text-muted-foreground"
-                    >
-                      <amenity.icon className="h-3 w-3" />
-                      {amenity.label}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            </article>
+            <RoomCard
+              key={room.key}
+              roomKey={room.key}
+              name={room.name}
+              description={room.description}
+              capacity={room.capacity}
+              fallbackImage={getFallback(room.key)}
+            />
           ))}
         </div>
       </div>
