@@ -24,6 +24,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { trackLead, trackWhatsAppClick } from "@/hooks/useAnalytics";
+import ThankYouModal from "@/components/ThankYouModal";
 
 interface BookingModalProps {
   open: boolean;
@@ -44,6 +45,7 @@ const BookingModal = ({ open, onOpenChange }: BookingModalProps) => {
   const [checkInOpen, setCheckInOpen] = useState(false);
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
+  const [showThankYou, setShowThankYou] = useState(false);
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -80,6 +82,15 @@ const BookingModal = ({ open, onOpenChange }: BookingModalProps) => {
     const urlParams = new URLSearchParams(window.location.search);
     const utmSource = urlParams.get("utm_source") || null;
 
+    // Fire Google Ads conversion event
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'conversion', {
+        'send_to': 'AW-17845107698/sXC3CJLl5tobEPL3mr1C',
+        'value': 1.0,
+        'currency': 'BRL'
+      });
+    }
+
     void Promise.all([
       trackLead({
         checkIn,
@@ -89,6 +100,9 @@ const BookingModal = ({ open, onOpenChange }: BookingModalProps) => {
       }),
       trackWhatsAppClick(utmSource),
     ]).catch(() => {});
+
+    // Show thank you modal
+    setShowThankYou(true);
   };
 
   const isFormValid = Boolean(checkIn && checkOut);
@@ -303,6 +317,8 @@ const BookingModal = ({ open, onOpenChange }: BookingModalProps) => {
           )}
         </div>
       </DialogContent>
+
+      <ThankYouModal open={showThankYou} onOpenChange={setShowThankYou} />
     </Dialog>
   );
 };

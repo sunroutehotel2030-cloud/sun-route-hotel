@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { trackLead, trackWhatsAppClick } from "@/hooks/useAnalytics";
+import ThankYouModal from "@/components/ThankYouModal";
 
 interface BookingFormProps {
   onBookingAttempt?: (data: { checkIn: Date; checkOut: Date; guests: number }) => void;
@@ -64,6 +65,7 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
   const [checkOutOpen, setCheckOutOpen] = useState(false);
   const [currentMessageIndex, setCurrentMessageIndex] = useState(0);
   const [hoveredDate, setHoveredDate] = useState<Date | null>(null);
+  const [showThankYou, setShowThankYou] = useState(false);
 
   // Rotate urgency messages
   useEffect(() => {
@@ -119,6 +121,15 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
     const urlParams = new URLSearchParams(window.location.search);
     const utmSource = urlParams.get("utm_source") || null;
 
+    // Fire Google Ads conversion event
+    if (typeof gtag !== 'undefined') {
+      gtag('event', 'conversion', {
+        'send_to': 'AW-17845107698/sXC3CJLl5tobEPL3mr1C',
+        'value': 1.0,
+        'currency': 'BRL'
+      });
+    }
+
     // Fire-and-forget tracking so it never blocks the navigation
     void Promise.all([
       trackLead({
@@ -129,6 +140,9 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
       }),
       trackWhatsAppClick(utmSource),
     ]).catch(() => {});
+
+    // Show thank you modal
+    setShowThankYou(true);
 
     if (onBookingAttempt) {
       onBookingAttempt({ checkIn, checkOut, guests: parseInt(guests) });
@@ -355,6 +369,8 @@ const BookingForm = ({ onBookingAttempt }: BookingFormProps) => {
           </Button>
         )}
       </div>
+
+      <ThankYouModal open={showThankYou} onOpenChange={setShowThankYou} />
     </div>
   );
 };
