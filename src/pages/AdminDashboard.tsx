@@ -238,8 +238,8 @@ const AdminDashboard = () => {
       ["Data", "Check-in", "Check-out", "Hóspedes", "Origem"],
       ...leads.map((lead) => [
         format(new Date(lead.clicked_at), "dd/MM/yyyy HH:mm", { locale: ptBR }),
-        lead.check_in,
-        lead.check_out,
+        format(new Date(lead.check_in), "dd/MM/yyyy"),
+        format(new Date(lead.check_out), "dd/MM/yyyy"),
         lead.guests.toString(),
         lead.utm_source || "Direto",
       ]),
@@ -359,7 +359,7 @@ const AdminDashboard = () => {
                     {format(new Date(lead.clicked_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {lead.guests} hóspede(s) • {lead.check_in} a {lead.check_out}
+                    {lead.guests} hóspede(s) • {format(new Date(lead.check_in), "dd/MM/yyyy")} a {format(new Date(lead.check_out), "dd/MM/yyyy")}
                   </p>
                 </div>
                 <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
@@ -482,8 +482,8 @@ const AdminDashboard = () => {
                     <TableCell className="font-medium">
                       {format(new Date(lead.clicked_at), "dd/MM/yyyy HH:mm", { locale: ptBR })}
                     </TableCell>
-                    <TableCell>{lead.check_in}</TableCell>
-                    <TableCell>{lead.check_out}</TableCell>
+                    <TableCell>{format(new Date(lead.check_in), "dd/MM/yyyy")}</TableCell>
+                    <TableCell>{format(new Date(lead.check_out), "dd/MM/yyyy")}</TableCell>
                     <TableCell>{lead.guests}</TableCell>
                     <TableCell>
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
