@@ -60,7 +60,7 @@ const Footer = () => {
             <h4 className="font-display font-semibold text-lg mb-4">Localização</h4>
             <div className="aspect-video rounded-xl overflow-hidden">
               <iframe
-                src="https://maps.google.com/maps?q=-8.2875,-35.032&z=16&output=embed"
+                src="https://maps.google.com/maps?q=-8.3029188,-35.0217549&z=17&output=embed"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
