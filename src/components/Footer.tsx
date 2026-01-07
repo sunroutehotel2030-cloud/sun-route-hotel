@@ -1,7 +1,9 @@
-import { MapPin, Instagram, Phone } from "lucide-react";
+import { MapPin, Instagram, Phone, Navigation } from "lucide-react";
 import logoImage from "@/assets/logo-hotel.jpg";
 
 const Footer = () => {
+  const hotelMapLink = "https://maps.app.goo.gl/FnFr7Agssd75SajC8";
+
   return (
     <footer id="contato" className="bg-foreground text-primary-foreground">
       <div className="container-hotel section-padding">
@@ -24,7 +26,7 @@ const Footer = () => {
             <h4 className="font-display font-semibold text-lg mb-4">Contato</h4>
             <div className="space-y-3">
               <a
-                href="https://maps.google.com/?q=PE-060,+2891,+Cabo+de+Santo+Agostinho"
+                href={hotelMapLink}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-start gap-3 text-primary-foreground/80 hover:text-golden-light transition-colors text-sm"
@@ -58,7 +60,7 @@ const Footer = () => {
             <h4 className="font-display font-semibold text-lg mb-4">Localização</h4>
             <div className="aspect-video rounded-xl overflow-hidden">
               <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3950.8!2d-35.03!3d-8.28!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2zOMKwMTYnNDguMCJTIDM1wrAwMS00OC4wIlc!5e0!3m2!1spt-BR!2sbr!4v1234567890"
+                src="https://maps.google.com/maps?q=-8.2875,-35.032&z=16&output=embed"
                 width="100%"
                 height="100%"
                 style={{ border: 0 }}
@@ -69,6 +71,15 @@ const Footer = () => {
                 className="grayscale hover:grayscale-0 transition-all duration-500"
               />
             </div>
+            <a
+              href={hotelMapLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-3 inline-flex items-center justify-center gap-2 w-full bg-golden hover:bg-golden-dark text-foreground font-medium py-2.5 px-4 rounded-lg transition-colors"
+            >
+              <Navigation className="h-4 w-4" />
+              Traçar Rota
+            </a>
           </div>
         </div>
 
