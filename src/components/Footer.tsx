@@ -32,7 +32,7 @@ const Footer = () => {
                 className="flex items-start gap-3 text-primary-foreground/80 hover:text-golden-light transition-colors text-sm"
               >
                 <MapPin className="h-5 w-5 flex-shrink-0 mt-0.5" />
-                <span>PE-060, 2891, Cabo de Santo Agostinho - PE</span>
+                <span>PE-060, 2891 (Vizinho a Splash Piscinas e em frente ao Shopping Costa Dourada)</span>
               </a>
               <a
                 href="https://wa.me/5581984446199"
