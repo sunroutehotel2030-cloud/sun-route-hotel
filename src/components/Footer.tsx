@@ -13,11 +13,10 @@ const Footer = () => {
             <img
               src={logoImage}
               alt="Sun Route Hotel"
-              className="h-16 w-auto rounded-lg mb-4"
+              className="h-24 w-auto rounded-lg mb-4"
             />
             <p className="text-primary-foreground/80 text-sm leading-relaxed">
-              Seu refúgio à beira-mar em Cabo de Santo Agostinho. Conforto, 
-              tranquilidade e atendimento de qualidade para sua estadia perfeita.
+              Seu refúgio em Cabo de Santo Agostinho. Conforto, tranquilidade e atendimento de qualidade para sua estadia perfeita. Suítes com ar-condicionado, tv e frigobar.
             </p>
           </div>
 
