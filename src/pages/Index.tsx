@@ -3,6 +3,7 @@ import Hero from "@/components/Hero";
 import Accommodations from "@/components/Accommodations";
 import Testimonials from "@/components/Testimonials";
 import Footer from "@/components/Footer";
+import WhatsAppFloat from "@/components/WhatsAppFloat";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
 const Index = () => {
@@ -15,6 +16,7 @@ const Index = () => {
       <Accommodations />
       <Testimonials />
       <Footer />
+      <WhatsAppFloat />
     </main>
   );
 };
